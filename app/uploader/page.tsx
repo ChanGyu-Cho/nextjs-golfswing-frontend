@@ -2,30 +2,33 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { exit } from 'process';
 import { useState, useRef } from 'react';
 
 // ⭐ 환경 변수에서 베이스 URL을 가져와 구성합니다.
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-const BACKEND_UPLOAD_API = `${API_BASE_URL}/api/upload/`;
+// Use the same NEXT_PUBLIC_BACKEND_BASE as other pages (e.g. http://localhost:29001/api)
+const BACKEND_BASE = process.env.NEXT_PUBLIC_BACKEND_BASE || 'http://localhost:29001/api';
+const BACKEND_UPLOAD_API = `${BACKEND_BASE.replace(/\/$/, '')}/upload/`;
 
 // ⭐ WebSocket 베이스 URL을 설정합니다.
 // 우선순위: NEXT_PUBLIC_WS_BASE_URL 환경변수 -> NEXT_PUBLIC_API_BASE_URL 변환(http->ws) -> 기본값
 let WS_BASE_URL = process.env.NEXT_PUBLIC_WS_BASE_URL;
-if (!WS_BASE_URL && API_BASE_URL) {
+if (!WS_BASE_URL && BACKEND_BASE) {
   try {
     // http(s) -> ws(s)
-    if (API_BASE_URL.startsWith('https://')) {
-      WS_BASE_URL = API_BASE_URL.replace(/^https:/, 'wss:');
-    } else if (API_BASE_URL.startsWith('http://')) {
-      WS_BASE_URL = API_BASE_URL.replace(/^http:/, 'ws:');
+    if (BACKEND_BASE.startsWith('https://')) {
+      WS_BASE_URL = BACKEND_BASE.replace(/^https:/, 'wss:');
+    } else if (BACKEND_BASE.startsWith('http://')) {
+      WS_BASE_URL = BACKEND_BASE.replace(/^http:/, 'ws:');
     } else {
-      WS_BASE_URL = API_BASE_URL; // fallback
+      WS_BASE_URL = BACKEND_BASE; // fallback
     }
   } catch (e) {
-    WS_BASE_URL = 'ws://localhost:8000';
+    console.error(`[WebSocket URL Error] ${e}`);
+    exit(1);
   }
 }
-WS_BASE_URL = WS_BASE_URL || 'ws://localhost:8000';
+WS_BASE_URL = WS_BASE_URL
 
 
 export default function UploaderPage() {
@@ -58,8 +61,9 @@ export default function UploaderPage() {
   const preconnectWebSocket = (openTimeout = 5000): Promise<void> => {
     return new Promise((resolve, reject) => {
       try {
-        // 1) WebSocket 생성
-        const ws = new WebSocket(`${WS_BASE_URL}/api/result/ws/analysis`);
+  // 1) WebSocket 생성 (preconnect endpoint)
+  const wsBase = (WS_BASE_URL || 'ws://localhost:8000').replace(/\/$/, '');
+  const ws = new WebSocket(`${wsBase}/result/ws/analysis`);
         wsRef.current = ws;
 
         // 2) open 타임아웃
@@ -195,9 +199,22 @@ export default function UploaderPage() {
         throw new Error(`S3 업로드 실패: ${s3UploadResponse.status} ${s3UploadResponse.statusText}`);
       }
 
-      // 업로드 성공. 이제 WebSocket 푸시를 대기합니다.
-  setUploadStatus(`🎉 업로드 성공! Job ID: ${job_id}. 서버 분석 시작, 결과 대기 중...`);
-  setInProgress(false);
+      // 업로드 성공. 이제 Result 페이지로 이동하여 WebSocket 푸시(프레젠즈드 GET)를 기다립니다.
+      const successMsg = `🎉 업로드 성공! Job ID: ${job_id}. 서버 분석 시작, 결과 대기 중...`;
+      setUploadStatus(successMsg);
+      setInProgress(false);
+
+      // 이동 전에 (선택) 현재 열려있는 preconnected WS는 닫습니다 —
+      // 결과 페이지가 자체적으로 WebSocket을 열어 register 하므로 여기서 연결을 해제해도 무방합니다.
+      try {
+        if (wsRef.current) {
+          try { wsRef.current.close(); } catch (e) {}
+          wsRef.current = null;
+        }
+      } catch (e) {}
+
+      // 결과 페이지로 이동
+      router.push(`/result?job_id=${encodeURIComponent(job_id)}`);
       
     } catch (error) {
       console.error('업로드 실패 상세:', error);
@@ -213,7 +230,7 @@ export default function UploaderPage() {
   const handleLogout = async () => {
     try {
       // 서버에 로그아웃 요청 (HttpOnly 쿠키 삭제)
-      await fetch(`${API_BASE_URL}/api/token/logout`, {
+      await fetch(`${BACKEND_BASE.replace(/\/$/, '')}/token/logout`, {
         method: 'POST',
         credentials: 'include'
       }).catch(()=>{});
