@@ -21,3 +21,5 @@ non_member_identifier: 비회원 식별자, 현재는 비회원 기능은 없음
 
 /api/upload에서는 json 받고 s3 전송용 presinged url 리턴
 이를 사용해 s3로 직접 업로드
+
+https://github.com/drmoon-1st/Jabez 의 subtree repo
