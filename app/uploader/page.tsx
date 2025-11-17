@@ -48,6 +48,15 @@ export default function UploaderPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const selectedFile = e.target.files[0];
+      const isMp4 = (selectedFile.type === 'video/mp4') || selectedFile.name.toLowerCase().endsWith('.mp4');
+      if (!isMp4) {
+        // Reject non-mp4 file selection
+        setFile(null);
+        setUploadStatus(`지원되지 않는 파일 형식입니다. .mp4 파일만 업로드할 수 있습니다. 선택한 파일: ${selectedFile.name}`);
+        // clear the file input so the same file can be re-selected if needed
+        try { if (fileInputRef.current) fileInputRef.current.value = ''; } catch (e) {}
+        return;
+      }
       setFile(selectedFile);
       setUploadStatus(`파일 선택 완료: ${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB)`);
     } else {
@@ -119,6 +128,13 @@ export default function UploaderPage() {
       return;
     }
 
+    // Extra safety: ensure file is mp4 before proceeding
+    const isMp4 = (file.type === 'video/mp4') || file.name.toLowerCase().endsWith('.mp4');
+    if (!isMp4) {
+      setUploadStatus('지원되지 않는 파일 형식입니다. .mp4 파일만 업로드할 수 있습니다.');
+      return;
+    }
+
   setInProgress(true);
   setUploadStatus('1/3 단계: S3 Pre-signed URL 및 Job ID 요청 중...');
 
@@ -136,7 +152,7 @@ export default function UploaderPage() {
 
       // 2. Job ID 및 Presigned URL 요청
       const payload = {
-        upload_source: 'WEB_2D',
+        upload_source: '2D',
         original_filename: file.name,
         file_type: file.type || 'application/octet-stream',
         file_size_bytes: file.size,
@@ -257,7 +273,7 @@ export default function UploaderPage() {
           type="file" 
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept="*" 
+          accept=".mp4,video/mp4" 
           style={{ display: 'block', marginBottom: '10px' }}
         />
       </div>

@@ -7,6 +7,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 // FastAPI 백엔드 API 주소 정의
 // .env 파일에서 불러오는 것이 권장되지만, 여기서는 명시적으로 지정합니다.
 const BACKEND_TOKEN_API = process.env.NEXT_PUBLIC_API_BASE_URL + "/api/token";
+const BACKEND_AUTH_FORWARD = process.env.NEXT_PUBLIC_API_BASE_URL + "/api/auth/callback/forward";
 const OAUTH_STATE_KEY = 'oauth_state';
 
 export default function CallbackPage() {
@@ -74,14 +75,42 @@ FastAPI 응답 오류: ${data.detail?.message || data.message || '알 수 없는
             // State 값 검증 (CSRF 방지)
             const originalState = sessionStorage.getItem(OAUTH_STATE_KEY);
             sessionStorage.removeItem(OAUTH_STATE_KEY);
-
             if (returnedState !== originalState || !originalState) {
-                setLogMessage(`🚨 상태 검증 실패! CSRF 공격 가능성.
-돌아온 State: ${returnedState} / 원래 State: ${originalState}`);
-                // 보안을 위해 실패 시 처리가 필요합니다.
+                setLogMessage(`🚨 상태 검증 실패 (원래 상태 없음). 시도: 백엔드로 코드 전달하여 교환 시도 중...`);
+
+                // 데스크탑에서 직접 브라우저를 열어 로그인한 경우, 브라우저 측에 원래 state가 없습니다.
+                // 이 경우 프론트엔드는 받은 code/state를 백엔드에 전달(forward)하고, 백엔드가 토큰 교환을 수행합니다.
+                // 이는 데스크탑-통합(single) 방식 지원을 위한 안전한 보완입니다.
+
+                if (!BACKEND_AUTH_FORWARD) {
+                    setLogMessage("❌ 백엔드 전달 엔드포인트가 구성되어 있지 않습니다. 서버 환경변수를 확인하세요.");
+                    return;
+                }
+
+                const forwardExchange = async () => {
+                    try {
+                        const resp = await fetch(BACKEND_AUTH_FORWARD, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ code: authCode, state: returnedState })
+                        });
+                        if (resp.ok) {
+                            // 데스크탑에서 연 브라우저의 경우 업로더로 이동시키지 않고
+                            // 사용자에게 인증 완료 메시지를 표시하도록 합니다.
+                            setLogMessage('✅ 인증 완료 되었습니다. 창을 닫아주세요.');
+                        } else {
+                            const d = await resp.json();
+                            setLogMessage(`❌ 백엔드 전달 실패: ${d.detail || JSON.stringify(d)}`);
+                        }
+                    } catch (e) {
+                        setLogMessage(`❌ 전달 중 통신 오류: ${e instanceof Error ? e.message : String(e)}`);
+                    }
+                };
+                forwardExchange();
                 return;
             }
-            
+
             // State 검증 성공 후 토큰 교환 시작
             exchangeToken(authCode);
 
