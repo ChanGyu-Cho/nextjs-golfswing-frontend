@@ -1,65 +1,83 @@
-import Image from "next/image";
+"use client";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const router = useRouter();
+  const list = [
+    "비용 걱정 마세요.",
+    "장소 걱정 마세요.",
+    "소음 걱정 마세요.",
+    "언제 어디서든",
+    "당신의 스윙을 분석하세요.",
+  ];
+
+  const [seqeunce, setSequence] = useState<string>("");
+  const [textIndex, setTextIndex] = useState(0); // 현재 문장 인덱스
+  const [textCount, setTextCount] = useState(0); // 현재 글자 인덱스
+  const [isTypingPaused, setIsTypingPaused] = useState<boolean>(false);
+
+  useEffect(() => {
+    const currentText = list[textIndex];
+
+    const typingInterval = setInterval(() => {
+      if (isTypingPaused) {
+        clearInterval(typingInterval);
+        // 2초 쉬고 다음 문장으로 이동
+        setTimeout(() => {
+          setIsTypingPaused(false);
+          setTextCount(0);
+          setSequence("");
+          setTextIndex((prev) => (prev + 1) % list.length); // 다음 문장 (무한 반복)
+        }, 1000);
+        return;
+      }
+
+      if (textCount >= currentText.length) {
+        // 문장 완료 → 일시정지
+        setIsTypingPaused(true);
+        return;
+      }
+
+      const nextChar = currentText[textCount];
+      setSequence((prev) => prev + nextChar);
+      setTextCount((prev) => prev + 1);
+    }, 100); // 글자 출력 속도
+
+    return () => clearInterval(typingInterval);
+  }, [textIndex, textCount, isTypingPaused, list]);
+
+  {
+    /* 1f8552 - 초록색*/
+  }
+  {
+    /* 247a4f */
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="h-[calc(100vh-99px)]">
+      <div className="flex flex-col items-center pt-[150px]">
+        <div className="flex flex-col items-center gap-[30px] h-[350px]">
+          <div className="text-[48px] leading-[50px] font-bold">
+            당신의 스윙이 궁금할 때
+          </div>
+          {/* 5a4bff - 보라색 */}
+          {/* 1f8552 - 초록색*/}
+          <div className="text-[120px] leading-[100px] font-bold text-[#166852]">
+            Form AI
+          </div>
+          <div className="text-[48px] leading-[50px] text-[#4b5563]">
+            {seqeunce}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        {/* 247a4f */}
+        <div
+          className="bg-[#1f8552] text-white rounded-[10px] text-[24px] py-[20px] px-[32px] font-bold cursor-pointer"
+          onClick={() => router.push("/main")}
+        >
+          지금 시작하기
         </div>
-      </main>
+      </div>
     </div>
   );
 }
