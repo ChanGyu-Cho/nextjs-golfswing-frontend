@@ -2,6 +2,9 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import XfactorGraph from "./XfactorGraph";
+import ModelComponent from "./ModelComponent";
+import MetricsComponent from "./MetricsComponent";
 
 // Configure backend base URL via NEXT_PUBLIC_BACKEND_BASE (e.g. http://localhost:29001/api)
 const BACKEND_BASE =
@@ -122,101 +125,10 @@ export default function ResultPage() {
   }, [jobId]);
 
   return (
-    <div className="flex flex-col  justify-center items-center bg-[#f6fcf5]  py-[50px]">
-      <div className="text-[24px] font-bold pb-[30px]">
-        Swing Metrics Analysis
-      </div>
-      <div className="flex flex-col gap-[50px]">
-        <div className="flex flex-row gap-[40px] border border-[#e6e6e6] bg-white rounded-[14px] max-w-[1200px] py-[40px] px-[56px] ">
-          <div className="w-[40%]">
-            <div className="text-[20px] font-bold pb-[10px]">Xfactor</div>
-            <div className="text-[14px]  pb-[20px]">
-              X-Factor는 어깨와 골반의 회전 차이를 나타내는 지표로, 스윙의
-              파워와 정확도를 결정하는 핵심 요소입니다.
-            </div>
-            <div className="text-[16px] font-semibold pb-[10px]">
-              Your Swing Feedback
-            </div>
-            <div className="text-[14px] ">
-              당신의 X-Factor는 15°로, 낮은 수준입니다. 상체와 하체의 회전
-              차이가 작아 파워 전달이 부족할 수 있습니다. 백스윙 시 어깨를 조금
-              더 돌려 상체 회전각을 늘려보세요.
-            </div>
-          </div>
-          <div className="border border-[#1f8552] rounded-[14px] w-[60%]"></div>
-        </div>
-        <div className="flex flex-row gap-[40px] border border-[#e6e6e6] bg-white rounded-[14px] max-w-[1200px] py-[40px] px-[56px] ">
-          <div className="w-[40%]">
-            <div className="text-[20px] font-bold pb-[10px]">COM</div>
-            <div className="text-[14px]  pb-[20px]">
-              X-Factor는 어깨와 골반의 회전 차이를 나타내는 지표로, 스윙의
-              파워와 정확도를 결정하는 핵심 요소입니다.
-            </div>
-            <div className="text-[16px] font-semibold pb-[10px]">
-              Your Swing Feedback
-            </div>
-            <div className="text-[14px] ">
-              당신의 X-Factor는 15°로, 낮은 수준입니다. 상체와 하체의 회전
-              차이가 작아 파워 전달이 부족할 수 있습니다. 백스윙 시 어깨를 조금
-              더 돌려 상체 회전각을 늘려보세요.
-            </div>
-          </div>
-          <div className="border border-[#1f8552] rounded-[14px] w-[60%]"></div>
-        </div>
-        <div className="flex flex-row gap-[40px] border border-[#e6e6e6] bg-white rounded-[14px] max-w-[1200px] py-[40px] px-[56px] ">
-          <div className="w-[40%]">
-            <div className="text-[20px] font-bold pb-[10px]">Head</div>
-            <div className="text-[14px]  pb-[20px]">
-              X-Factor는 어깨와 골반의 회전 차이를 나타내는 지표로, 스윙의
-              파워와 정확도를 결정하는 핵심 요소입니다.
-            </div>
-            <div className="text-[16px] font-semibold pb-[10px]">
-              Your Swing Feedback
-            </div>
-            <div className="text-[14px] ">
-              당신의 X-Factor는 15°로, 낮은 수준입니다. 상체와 하체의 회전
-              차이가 작아 파워 전달이 부족할 수 있습니다. 백스윙 시 어깨를 조금
-              더 돌려 상체 회전각을 늘려보세요.
-            </div>
-          </div>
-          <div className="border border-[#1f8552] rounded-[14px] w-[60%]"></div>
-        </div>
-        <div className="flex flex-row gap-[40px] border border-[#e6e6e6] bg-white rounded-[14px] max-w-[1200px] py-[40px] px-[56px] ">
-          <div className="w-[40%]">
-            <div className="text-[20px] font-bold pb-[10px]">Xfactor</div>
-            <div className="text-[14px]  pb-[20px]">
-              X-Factor는 어깨와 골반의 회전 차이를 나타내는 지표로, 스윙의
-              파워와 정확도를 결정하는 핵심 요소입니다.
-            </div>
-            <div className="text-[16px] font-semibold pb-[10px]">
-              Your Swing Feedback
-            </div>
-            <div className="text-[14px] ">
-              당신의 X-Factor는 15°로, 낮은 수준입니다. 상체와 하체의 회전
-              차이가 작아 파워 전달이 부족할 수 있습니다. 백스윙 시 어깨를 조금
-              더 돌려 상체 회전각을 늘려보세요.
-            </div>
-          </div>
-          <div className="border border-[#1f8552] rounded-[14px] w-[60%]"></div>
-        </div>
-        <div className="flex flex-row gap-[40px] border border-[#e6e6e6] bg-white rounded-[14px] max-w-[1200px] py-[40px] px-[56px] ">
-          <div className="w-[40%]">
-            <div className="text-[20px] font-bold pb-[10px]">Xfactor</div>
-            <div className="text-[14px]  pb-[20px]">
-              X-Factor는 어깨와 골반의 회전 차이를 나타내는 지표로, 스윙의
-              파워와 정확도를 결정하는 핵심 요소입니다.
-            </div>
-            <div className="text-[16px] font-semibold pb-[10px]">
-              Your Swing Feedback
-            </div>
-            <div className="text-[14px] ">
-              당신의 X-Factor는 15°로, 낮은 수준입니다. 상체와 하체의 회전
-              차이가 작아 파워 전달이 부족할 수 있습니다. 백스윙 시 어깨를 조금
-              더 돌려 상체 회전각을 늘려보세요.
-            </div>
-          </div>
-          <div className="border border-[#1f8552] rounded-[14px] w-[60%]"></div>
-        </div>
+    <div className="flex flex-col justify-center items-center bg-[#f6fcf5]  py-[50px]">
+      <div>
+        <ModelComponent />
+        <MetricsComponent />
       </div>
     </div>
     // <div style={{ padding: 20, fontFamily: "Inter, Arial, sans-serif" }}>
