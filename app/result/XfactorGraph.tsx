@@ -1,3 +1,4 @@
+import React from "react";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -7,6 +8,7 @@ import {
   LineElement,
   Tooltip,
   Legend,
+  ChartOptions,
 } from "chart.js";
 
 import annotationPlugin from "chartjs-plugin-annotation";
@@ -44,46 +46,44 @@ function XfactorGraph() {
         tension: 0.4,
         pointRadius: 0,
       },
-      {
-        // Impact vertical line
-        label: "Impact",
-        data: labels.map((x) => (x === impactFrame ? null : null)),
-        borderColor: "rgba(209,140,0,0.8)",
-        borderWidth: 2,
-        pointRadius: 0,
-      },
     ],
   };
 
-  const options = {
+  // Build the annotations object using literal assertions for type & position,
+  // then cast the whole annotations map to `any` to avoid deep generic incompatibilities.
+  const annotations = {
+    impactLine: {
+      type: "line" as const,
+      xMin: impactFrame,
+      xMax: impactFrame,
+      borderColor: "#d18b00",
+      borderWidth: 2,
+      borderDash: [6, 6],
+      label: {
+        display: true,
+        content: "Impact",
+        position: "start" as const, // <- important: make this a literal
+        yAdjust: 20,
+      },
+    },
+    impactPoint: {
+      type: "point" as const,
+      xValue: impactFrame,
+      yValue: xfactorData[impactFrame],
+      radius: 6,
+      backgroundColor: "#d18b00",
+      borderColor: "#d18b00",
+    },
+  } as const;
+
+  const options: ChartOptions<"line"> = {
     responsive: true,
     plugins: {
       legend: { display: false },
+      // cast to any to satisfy Chart.js deep-partial typings for the plugin
       annotation: {
-        annotations: {
-          impactLine: {
-            type: "line",
-            xMin: impactFrame,
-            xMax: impactFrame,
-            borderColor: "#d18b00",
-            borderWidth: 2,
-            borderDash: [6, 6],
-            label: {
-              display: true,
-              content: "Impact",
-              position: "start",
-              yAdjust: 20,
-            },
-          },
-          impactPoint: {
-            type: "point",
-            xValue: impactFrame,
-            yValue: xfactorData[impactFrame],
-            radius: 6,
-            backgroundColor: "#d18b00",
-            borderColor: "#d18b00",
-          },
-        },
+        // here we cast annotations to `any` to avoid the deep mismatch of nested partial types
+        annotations: annotations as unknown as any,
       },
     },
     scales: {
@@ -103,6 +103,7 @@ function XfactorGraph() {
       },
     },
   };
+
   return (
     <div style={{ width: "100%", height: "500px" }}>
       <Line data={data} options={options} />
