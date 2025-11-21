@@ -73,7 +73,7 @@ export default function Home() {
         {/* 247a4f */}
         <div
           className="bg-[#1f8552] text-white rounded-[10px] text-[24px] py-[20px] px-[32px] font-bold cursor-pointer"
-          onClick={() => router.push("/main")}
+          onClick={() => router.push("/login")}
         >
           지금 시작하기
         </div>

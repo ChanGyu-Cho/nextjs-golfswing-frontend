@@ -203,10 +203,25 @@ export default function UploaderPage() {
       // 3. S3로 파일 업로드
       setUploadStatus(prev => prev + '\n[단계: 3/3] S3에 파일 직접 업로드 중...');
 
+      // Debug logging: show which file and presigned URL will be used for PUT
+      try {
+        const currentFile = fileInputRef.current?.files?.[0];
+        console.info('[Uploader] About to PUT. file state:', {
+          selectedFile_name: file?.name,
+          selectedFile_size: file?.size,
+          inputFile_name: currentFile?.name,
+          inputFile_size: currentFile?.size,
+          job_id: job_id,
+          presignedUrl: presignedUrl
+        });
+      } catch (e) {
+        console.warn('Failed to log file input state', e);
+      }
+
       const s3UploadResponse = await fetch(presignedUrl, {
         method: 'PUT',
         headers: {
-          'Content-Type': file.type || 'application/octet-stream' 
+          'Content-Type': file.type || 'application/octet-stream'
         },
         body: file
       });
@@ -229,8 +244,8 @@ export default function UploaderPage() {
         }
       } catch (e) {}
 
-      // 결과 페이지로 이동
-      router.push(`/result?job_id=${encodeURIComponent(job_id)}`);
+      // 결과(수신) 페이지로 이동(현재는 result가 아닌, receive로 이동, receive 쪽에서 WS 재연결 및 등록 처리)
+      router.push(`/receive?job_id=${encodeURIComponent(job_id)}`);
       
     } catch (error) {
       console.error('업로드 실패 상세:', error);
