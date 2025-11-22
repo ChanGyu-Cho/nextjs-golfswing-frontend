@@ -3,7 +3,8 @@
  * Proxy logout request to backend token/logout endpoint and forward Set-Cookie
  */
 const BACKEND_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-const LOGOUT_ENDPOINT = BACKEND_API_BASE_URL ? BACKEND_API_BASE_URL.replace(/\/$/, '') + '/token/logout' : undefined;
+// FastAPI mounts token router under /api, so forward to /api/token/logout
+const LOGOUT_ENDPOINT = BACKEND_API_BASE_URL ? BACKEND_API_BASE_URL.replace(/\/$/, '') + '/api/token/logout' : undefined;
 
 export async function POST(request: Request) {
   if (!BACKEND_API_BASE_URL || !LOGOUT_ENDPOINT) {

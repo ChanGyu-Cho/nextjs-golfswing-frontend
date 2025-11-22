@@ -14,21 +14,58 @@ export async function POST(request: Request) {
   if (!BACKEND_API_BASE_URL) {
     return Response.json({ message: "서버 환경변수 (NEXT_PUBLIC_API_BASE_URL)가 설정되지 않았습니다." }, { status: 500 });
   }
-
-  // 1. 클라이언트(브라우저)로부터 받은 FormData 추출
-  const formData = await request.formData();
-  const code = formData.get("code");
+  // 1. 클라이언트(브라우저)로부터 받은 바디 추출: FormData, JSON, 또는 urlencoded에 대응
+  let code: FormDataEntryValue | null = null;
+  try {
+    // 시도 1: multipart/form-data
+    const formData = await request.formData();
+    code = formData.get("code");
+  } catch (e) {
+    // formData 파싱 실패 시 무시하고 다음 시도
+  }
 
   if (!code) {
-    return Response.json({ message: "인증 코드가 누락되었습니다." }, { status: 400 });
+    // 시도 2: JSON
+    try {
+      const j = await request.json().catch(() => null);
+      if (j && typeof j === 'object' && 'code' in j) code = (j as any).code;
+    } catch (e) {}
+  }
+
+  if (!code) {
+    // 시도 3: urlencoded 또는 raw text
+    try {
+      const text = await request.text();
+      if (text) {
+        // e.g. code=... 또는 JSON-like
+        try {
+          const parsed = Object.fromEntries(new URLSearchParams(text));
+          if (parsed.code) code = parsed.code as any;
+        } catch (e) {}
+      }
+    } catch (e) {}
+  }
+
+  if (!code) {
+    return Response.json({ message: "인증 코드가 누락되었습니다. (no code in body)" }, { status: 400 });
   }
 
   // 2. 서버 측에서 FastAPI 백엔드로 실제 토큰 교환 요청 전송
   try {
+    // FastAPI의 Form(...)을 안전하게 만족시키기 위해 application/x-www-form-urlencoded 로 전달
+    const body = new URLSearchParams();
+    body.append('code', String(code));
+
+    const headers: any = {
+      'content-type': 'application/x-www-form-urlencoded'
+    };
+    const cookie = request.headers.get('cookie');
+    if (cookie) headers['cookie'] = cookie;
+
     const backendResponse = await fetch(FASTAPI_TOKEN_API, {
       method: "POST",
-      // FormData를 그대로 백엔드에 전달
-      body: formData, 
+      headers,
+      body: body.toString(),
     });
 
     // 3. 백엔드의 응답 상태와 헤더를 클라이언트에게 그대로 전달

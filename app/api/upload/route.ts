@@ -4,7 +4,8 @@
  * Receives JSON payload from client and forwards to backend `/upload/` endpoint.
  */
 const BACKEND_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-const UPLOAD_ENDPOINT = BACKEND_API_BASE_URL ? BACKEND_API_BASE_URL.replace(/\/$/, '') + '/upload/' : undefined;
+// FastAPI mounts upload router under /api (see backend main.py), so forward to /api/upload/
+const UPLOAD_ENDPOINT = BACKEND_API_BASE_URL ? BACKEND_API_BASE_URL.replace(/\/$/, '') + '/api/upload/' : undefined;
 
 export async function POST(request: Request) {
   if (!BACKEND_API_BASE_URL || !UPLOAD_ENDPOINT) {

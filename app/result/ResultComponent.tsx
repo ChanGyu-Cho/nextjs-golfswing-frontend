@@ -23,7 +23,7 @@ function toWebSocketBase() {
   if (url.startsWith('http://')) url = 'ws://' + url.slice('http://'.length);
   else if (url.startsWith('https://')) url = 'wss://' + url.slice('https://'.length);
   url = url.replace(/\/$/, '');
-  return `${url}/result/ws/analysis`;
+  return `${url}/api/result/ws/analysis`;
 }
 
 function ResultComponent() {

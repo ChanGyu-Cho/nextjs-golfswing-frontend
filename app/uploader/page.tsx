@@ -17,9 +17,6 @@ if (!WS_BASE_URL) {
   }
 }
 
-// 안전한 기본 URL (끝 슬래시 제거)
-const BACKEND_BASE_SAFE = BACKEND_BASE ? BACKEND_BASE.replace(/\/$/, '') : undefined;
-
 
 export default function UploaderPage() {
   const router = useRouter();
@@ -69,7 +66,7 @@ export default function UploaderPage() {
 
         // normalize base and create socket
         const wsBase = WS_BASE_URL.replace(/\/$/, '');
-        const ws = new WebSocket(`${wsBase}/result/ws/analysis`);
+        const ws = new WebSocket(`${wsBase}/api/result/ws/analysis`);
         wsRef.current = ws;
 
         // open timeout
@@ -139,18 +136,7 @@ export default function UploaderPage() {
   setUploadStatus('1/3 단계: S3 Pre-signed URL 및 Job ID 요청 중...');
 
     try {
-      // 1. WebSocket 사전 연결
-      setUploadStatus(prev => prev + '\n[단계: 1/3] WebSocket 사전 연결 시도...');
-      try {
-        await preconnectWebSocket();
-      } catch (err) {
-        console.error('WebSocket preconnect failed:', err);
-        setUploadStatus(prev => prev + '\n❌ WebSocket 연결에 실패했습니다. 업로드를 중단합니다.');
-        if (wsRef.current) { try { wsRef.current.close(); } catch (e) {} }
-        return;
-      }
-
-      // 2. Job ID 및 Presigned URL 요청
+      // 1. Job ID 및 Presigned URL 요청
       const payload = {
         upload_source: '2D',
         original_filename: file.name,
@@ -188,17 +174,7 @@ export default function UploaderPage() {
       
       setJobId(job_id);
 
-      // Register job_id over the preconnected WS
-      try {
-        if (!wsRef.current) throw new Error('WebSocket not connected');
-        wsRef.current.send(JSON.stringify({ action: 'register', job_id }));
-        setUploadStatus(prev => prev + `\n[단계: 2/3] Job ID ${job_id} 등록 메시지 전송. 업로드 시작...`);
-      } catch (regErr) {
-        console.error('WebSocket registration failed:', regErr);
-        setUploadStatus(prev => prev + `\n❌ WebSocket 등록 실패. 업로드을 중단합니다.`);
-        if (wsRef.current) { try { wsRef.current.close(); } catch (e) {} }
-        return;
-      }
+      setUploadStatus(prev => prev + `\n[단계: 2/3] Job ID ${job_id} 수신. 업로드 시작...`);
 
       // 3. S3로 파일 업로드
       setUploadStatus(prev => prev + '\n[단계: 3/3] S3에 파일 직접 업로드 중...');
@@ -235,14 +211,7 @@ export default function UploaderPage() {
       setUploadStatus(successMsg);
       setInProgress(false);
 
-      // 이동 전에 (선택) 현재 열려있는 preconnected WS는 닫습니다 —
-      // 결과 페이지가 자체적으로 WebSocket을 열어 register 하므로 여기서 연결을 해제해도 무방합니다.
-      try {
-        if (wsRef.current) {
-          try { wsRef.current.close(); } catch (e) {}
-          wsRef.current = null;
-        }
-      } catch (e) {}
+
 
       // 결과(수신) 페이지로 이동(현재는 result가 아닌, receive로 이동, receive 쪽에서 WS 재연결 및 등록 처리)
       router.push(`/receive?job_id=${encodeURIComponent(job_id)}`);

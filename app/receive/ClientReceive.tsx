@@ -1,118 +1,75 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-
-// Prefer same-origin WebSocket. Allow explicit env override via NEXT_PUBLIC_WS_BASE_URL.
-let WS_BASE_URL = process.env.NEXT_PUBLIC_WS_BASE_URL ?? undefined;
-if (!WS_BASE_URL) {
-  if (typeof window !== 'undefined') {
-    WS_BASE_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
-  }
-}
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function ClientReceive() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const jobId = searchParams?.get("job_id") || undefined;
 
   const [status, setStatus] = useState<string>(jobId ? `대기 중: Job ${jobId}` : "Job ID 없음");
-  const [resultUrl, setResultUrl] = useState<string | null>(null);
-  const [resultContent, setResultContent] = useState<any | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
+  const [resultUrls, setResultUrls] = useState<string[] | null>(null);
+  const [resultContents, setResultContents] = useState<any[] | null>(null);
 
+  // Polling: 주기적으로 /api/result/status?job_id=... 호출
   useEffect(() => {
     if (!jobId) return;
+    let cancelled = false;
 
-    if (!WS_BASE_URL) {
-      setStatus((s) => s + "\nWebSocket 설정 오류: NEXT_PUBLIC_WS_BASE_URL가 설정되지 않았습니다.");
-      return;
-    }
-    const wsBase = WS_BASE_URL.replace(/\/$/, "");
-    const url = `${wsBase}/result/ws/analysis`;
-
-    const token = (() => {
-      try { return localStorage.getItem('access_token'); } catch (e) { return null; }
-    })();
-
-    const ws = token ? new WebSocket(url, [`Bearer ${token}`]) : new WebSocket(url);
-    wsRef.current = ws;
-
-    const openTimeout = setTimeout(() => {
-      setStatus((s) => s + "\nWebSocket 연결 타임아웃");
-      try { ws.close(); } catch(e) {}
-    }, 8000);
-
-    ws.onopen = () => {
-      clearTimeout(openTimeout);
-      console.debug('[receive/page] ws.open', { url, protocol: ws.protocol });
-      setStatus(`WebSocket 연결됨. Job 등록 중...`);
+    const poll = async () => {
       try {
-        ws.send(JSON.stringify({ action: "register", job_id: jobId }));
-      } catch (e) {
-        console.error('[receive/page] failed to send register', e);
-      }
-    };
-
-    ws.onmessage = (ev) => {
-      console.debug('[receive/page] ws.message raw:', ev.data);
-      try {
-        const data = JSON.parse(ev.data);
-        if (data.status === "registered") {
-          setStatus(`등록됨: Job ${data.job_id}`);
-          return;
+        const resp = await fetch(`/api/result/status?job_id=${encodeURIComponent(jobId)}`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+        if (!resp.ok) {
+          if (resp.status === 404) {
+            setStatus('Job not found');
+            return;
+          }
+          throw new Error(`status fetch failed: ${resp.status}`);
         }
-        if (data.status === "COMPLETED") {
-          setStatus((s) => s + "\n분석 완료 - 결과 수신");
-          const urlFromPayload =
-            data.result_url || (Array.isArray(data.result_urls) ? data.result_urls[0] : null) || null;
-          if (urlFromPayload) setResultUrl(urlFromPayload);
-        }
-        if (data.error) {
-          setStatus((s) => s + `\n오류: ${data.error}`);
+        const j = await resp.json();
+        setStatus(j.status || 'pending');
+        if (j.status === 'COMPLETED' && (j.result_urls || j.result_url)) {
+          const urls = j.result_urls || (j.result_url ? [j.result_url] : []);
+          setResultUrls(urls);
+          setStatus('COMPLETED');
+          return; // stop polling
         }
       } catch (e) {
-        console.error('WS message parse error', e);
+        console.error('poll error', e);
+        setStatus((s) => s + '\n폴링 오류');
       }
+
+      if (!cancelled) setTimeout(poll, 3000); // 3초마다 폴링
     };
 
-    ws.onerror = (ev) => {
-      console.error('WebSocket error', ev);
-      setStatus((s) => s + "\nWebSocket 오류 발생");
-    };
-
-    ws.onclose = (ev) => {
-      setStatus((s) => s + `\nWebSocket 닫힘(code=${ev?.code})`);
-      wsRef.current = null;
-    };
-
-    return () => {
-      try { ws.close(); } catch (e) {}
-      wsRef.current = null;
-    };
+    poll();
+    return () => { cancelled = true; };
   }, [jobId]);
 
   useEffect(() => {
-    if (!resultUrl) return;
-    setStatus((s) => s + `\n결과 URL 수신: ${resultUrl}`);
-
+    if (!resultUrls || resultUrls.length === 0) return;
     (async () => {
       try {
-        const res = await fetch(resultUrl);
-        const ct = res.headers.get("content-type") || "";
-        if (ct.includes("application/json")) {
-          const j = await res.json();
-          setResultContent(j);
-        } else {
-          const text = await res.text();
-          setResultContent(text);
-        }
+        const contents = await Promise.all(resultUrls.map(async (u) => {
+          try {
+            const r = await fetch(u);
+            const ct = r.headers.get("content-type") || "";
+            if (ct.includes("application/json")) return await r.json();
+            return await r.text();
+          } catch (e) {
+            return { error: String(e), url: u };
+          }
+        }));
+        setResultContents(contents);
       } catch (e) {
-        console.error('Failed to fetch result url', e);
+        console.error('Failed to fetch result urls', e);
         setStatus((s) => s + "\n결과 가져오기 실패");
       }
     })();
-  }, [resultUrl]);
+  }, [resultUrls]);
 
   return (
     <div style={{ padding: 20 }}>
@@ -121,30 +78,39 @@ export default function ClientReceive() {
         {status}
       </div>
 
-      {resultUrl && (
+      {resultUrls && (
         <div style={{ marginTop: 12 }}>
           <div>
-            Result presigned URL: <a href={resultUrl} target="_blank" rel="noreferrer">Open</a>
+            Result presigned URLs:
+            <ul>
+              {resultUrls.map((u) => (
+                <li key={u}><a href={u} target="_blank" rel="noreferrer">{u}</a></li>
+              ))}
+            </ul>
           </div>
         </div>
       )}
 
-      {resultContent && (
+      {resultContents && (
         <div style={{ marginTop: 18 }}>
-          <h2>Result</h2>
-          <pre style={{ background: "#f6f8fa", padding: 12, borderRadius: 6, overflowX: "auto" }}>
-            {typeof resultContent === "string" ? resultContent : JSON.stringify(resultContent, null, 2)}
-          </pre>
+          <h2>Results</h2>
+          {resultContents.map((c, idx) => (
+            <div key={idx} style={{ marginBottom: 12 }}>
+              <h4>File {idx + 1}</h4>
+              <pre style={{ background: "#f6f8fa", padding: 12, borderRadius: 6, overflowX: "auto" }}>
+                {typeof c === "string" ? c : JSON.stringify(c, null, 2)}
+              </pre>
+            </div>
+          ))}
         </div>
       )}
 
-        <div style={{ marginTop: 18 }}>
-          <small>
-            Notes: The page connects to the same-origin WebSocket at <code>/result/ws/analysis</code> by default and
-            listens for a push containing <code>result_url</code>. The backend must be reachable from the frontend host
-            (e.g. via reverse proxy) and push the presigned URL (S3 GET). Presigned URL CORS must allow the frontend origin.
-          </small>
-        </div>
+      <div style={{ marginTop: 18 }}>
+        <small>
+          Notes: This page polls <code>/api/result/status</code> for job status. Polling is used instead of WebSocket
+          to improve compatibility with CDNs and reverse proxies.
+        </small>
+      </div>
     </div>
   );
 }
