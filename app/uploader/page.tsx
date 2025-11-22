@@ -5,30 +5,20 @@ import { useRouter } from 'next/navigation';
 import { exit } from 'process';
 import { useState, useRef } from 'react';
 
-// ⭐ 환경 변수에서 베이스 URL을 가져와 구성합니다.
-// Use the same NEXT_PUBLIC_BACKEND_BASE as other pages (e.g. http://localhost:29001/api)
-const BACKEND_BASE = process.env.NEXT_PUBLIC_BACKEND_BASE || 'http://localhost:29001/api';
-const BACKEND_UPLOAD_API = `${BACKEND_BASE.replace(/\/$/, '')}/upload/`;
+// Client should not call the backend directly. Use local API proxy endpoints.
+const BACKEND_UPLOAD_API = '/api/upload';
 
-// ⭐ WebSocket 베이스 URL을 설정합니다.
-// 우선순위: NEXT_PUBLIC_WS_BASE_URL 환경변수 -> NEXT_PUBLIC_API_BASE_URL 변환(http->ws) -> 기본값
-let WS_BASE_URL = process.env.NEXT_PUBLIC_WS_BASE_URL;
-if (!WS_BASE_URL && BACKEND_BASE) {
-  try {
-    // http(s) -> ws(s)
-    if (BACKEND_BASE.startsWith('https://')) {
-      WS_BASE_URL = BACKEND_BASE.replace(/^https:/, 'wss:');
-    } else if (BACKEND_BASE.startsWith('http://')) {
-      WS_BASE_URL = BACKEND_BASE.replace(/^http:/, 'ws:');
-    } else {
-      WS_BASE_URL = BACKEND_BASE; // fallback
-    }
-  } catch (e) {
-    console.error(`[WebSocket URL Error] ${e}`);
-    exit(1);
+// WebSocket base: prefer explicit env override, otherwise connect to same origin
+let WS_BASE_URL = process.env.NEXT_PUBLIC_WS_BASE_URL ?? undefined;
+if (!WS_BASE_URL) {
+  // Use same-origin so the browser connects to the frontend host (secure for same-EC2 setups)
+  if (typeof window !== 'undefined') {
+    WS_BASE_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
   }
 }
-WS_BASE_URL = WS_BASE_URL
+
+// 안전한 기본 URL (끝 슬래시 제거)
+const BACKEND_BASE_SAFE = BACKEND_BASE ? BACKEND_BASE.replace(/\/$/, '') : undefined;
 
 
 export default function UploaderPage() {
@@ -70,25 +60,30 @@ export default function UploaderPage() {
   const preconnectWebSocket = (openTimeout = 5000): Promise<void> => {
     return new Promise((resolve, reject) => {
       try {
-  // 1) WebSocket 생성 (preconnect endpoint)
-  const wsBase = (WS_BASE_URL || 'ws://localhost:8000').replace(/\/$/, '');
-  const ws = new WebSocket(`${wsBase}/result/ws/analysis`);
+        // Require a configured WS base URL (no hardcoded localhost fallback)
+        if (!WS_BASE_URL) {
+          const msg = 'WebSocket 설정 오류: NEXT_PUBLIC_WS_BASE_URL 또는 NEXT_PUBLIC_BACKEND_BASE가 설정되지 않았습니다.';
+          setUploadStatus((s) => s + `\n${msg}`);
+          return reject(new Error(msg));
+        }
+
+        // normalize base and create socket
+        const wsBase = WS_BASE_URL.replace(/\/$/, '');
+        const ws = new WebSocket(`${wsBase}/result/ws/analysis`);
         wsRef.current = ws;
 
-        // 2) open 타임아웃
+        // open timeout
         const t = setTimeout(() => {
           try { ws.close(); } catch (e) {}
           reject(new Error('WebSocket open timeout'));
         }, openTimeout);
 
-        // 3) ws가 정상적으로 열렸을 때 실행
         ws.onopen = () => {
           clearTimeout(t);
           setUploadStatus(prev => prev + '\n[단계: 1.1] WebSocket 사전 연결 성공. 준비 중...');
           resolve();
         };
 
-        // 4) 서버로부터 오는 메시지 처리기
         ws.onmessage = async (event) => {
           const data = JSON.parse(event.data);
 
@@ -98,7 +93,6 @@ export default function UploaderPage() {
           }
         };
 
-        // 5) 네트워크/WS 오류 처리기
         ws.onerror = (error) => {
           clearTimeout(t);
           setUploadStatus(prev => prev + `\n[오류] WebSocket 오류 발생!`);
@@ -107,7 +101,6 @@ export default function UploaderPage() {
           reject(new Error('WebSocket error'));
         };
 
-        // 6) 연결이 닫혔을 때
         ws.onclose = (ev) => {
           setUploadStatus(prev => prev + `\n[단계: 1.2] WebSocket 연결 해제됨. code=${ev?.code} reason=${ev?.reason || ''}`);
           console.info('WebSocket closed', { code: ev?.code, reason: ev?.reason, wasClean: ev?.wasClean, url: ws.url });
@@ -123,6 +116,13 @@ export default function UploaderPage() {
   // 3. 업로드 프로세스 시작
   // ----------------------------------------------------
   const handleUpload = async () => {
+    // sanity: ensure the proxy endpoint exists
+    if (!BACKEND_UPLOAD_API) {
+      const msg = '서버 설정 오류: 업로드 프록시가 구성되지 않았습니다.';
+      console.error(msg);
+      setUploadStatus(msg);
+      return;
+    }
     if (!file) {
       alert('먼저 파일을 선택해주세요.');
       return;
@@ -259,12 +259,12 @@ export default function UploaderPage() {
   // 4. 로그아웃 핸들러
   // ----------------------------------------------------
   const handleLogout = async () => {
-    try {
-      // 서버에 로그아웃 요청 (HttpOnly 쿠키 삭제)
-      await fetch(`${BACKEND_BASE.replace(/\/$/, '')}/token/logout`, {
-        method: 'POST',
-        credentials: 'include'
-      }).catch(()=>{});
+      try {
+        // 서버에 로그아웃 요청 (HttpOnly 쿠키 삭제) via local proxy
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include'
+        }).catch(()=>{});
       // 만약 로컬Storage에 토큰/세션이 있다면 같이 제거
       try { localStorage.removeItem('access_token'); localStorage.removeItem('id_token'); } catch(e){}
       setUploadStatus(prev => prev + '\n로그아웃 완료');

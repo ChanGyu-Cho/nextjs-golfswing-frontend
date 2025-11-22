@@ -3,16 +3,26 @@ import { useSearchParams } from "next/navigation";
 import ModelComponent from "./ModelComponent";
 import MetricsComponent from "./MetricsComponent";
 
-// Configure backend base URL via NEXT_PUBLIC_BACKEND_BASE (e.g. http://localhost:29001/api)
-const BACKEND_BASE =
-  process.env.NEXT_PUBLIC_BACKEND_BASE || "http://localhost:29001/api";
+// Configure backend base URL via NEXT_PUBLIC_BACKEND_BASE (e.g. http://localhost:3001/api)
+const BACKEND_BASE = process.env.NEXT_PUBLIC_BACKEND_BASE;
 
 function toWebSocketBase() {
-  let url = BACKEND_BASE;
-  if (url.startsWith("http://")) url = "ws://" + url.slice("http://".length);
-  else if (url.startsWith("https://"))
-    url = "wss://" + url.slice("https://".length);
-  url = url.replace(/\/$/, "");
+  // Always prefer same-origin WebSocket for security (frontend and backend on same EC2).
+  // If an explicit WS base is provided via env, use it; otherwise build from window.location.
+  let base: string | undefined = process.env.NEXT_PUBLIC_WS_BASE_URL;
+  if (!base) {
+    if (typeof window === 'undefined') {
+      throw new Error('Window is unavailable and no WS base env is configured');
+    }
+    const origin = window.location.origin;
+    base = origin;
+  }
+
+  // convert http(s) origin to ws(s)
+  let url = base;
+  if (url.startsWith('http://')) url = 'ws://' + url.slice('http://'.length);
+  else if (url.startsWith('https://')) url = 'wss://' + url.slice('https://'.length);
+  url = url.replace(/\/$/, '');
   return `${url}/result/ws/analysis`;
 }
 

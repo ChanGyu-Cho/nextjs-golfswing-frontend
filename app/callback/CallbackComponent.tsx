@@ -1,19 +1,20 @@
-import React from "react";
+// app/callback/CallbackComponent.tsx
+"use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
-// FastAPI 백엔드 API 주소 정의
-// .env 파일에서 불러오는 것이 권장되지만, 여기서는 명시적으로 지정합니다.
-const BACKEND_TOKEN_API = process.env.NEXT_PUBLIC_API_BASE_URL + "/api/token";
-const BACKEND_AUTH_FORWARD =
-  process.env.NEXT_PUBLIC_API_BASE_URL + "/api/auth/callback/forward";
+// Next.js API Route 주소 정의: 클라이언트가 요청할 주소
+// 이 주소는 Next.js 서버 환경에서 실행되는 프록시 엔드포인트입니다.
+const NEXT_TOKEN_PROXY_API = "/api/auth/token"; 
+// Use a local server-side proxy endpoint instead of calling backend directly from client
+const BACKEND_AUTH_FORWARD = "/api/auth/forward";
 const OAUTH_STATE_KEY = "oauth_state";
 
 function CallbackComponent() {
   const searchParams = useSearchParams();
   const [logMessage, setLogMessage] = useState("인증 코드 수신 및 검증 중...");
-  const [tokenData, setTokenData] = useState<any | null>(null); // 토큰 데이터를 저장할 상태
+  const [tokenData, setTokenData] = useState<any | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -29,50 +30,44 @@ function CallbackComponent() {
     }
 
     const exchangeToken = async (code: string) => {
-      if (!BACKEND_TOKEN_API) {
-        // typescript에서 필요한 null 체크, 안하면 fetch시 경고 날림
-        setLogMessage(
-          "❌ 백엔드 API URL이 설정되어 있지 않습니다. NEXT_PUBLIC_BACKEND_API 환경변수를 확인하고 서버를 재시작하세요."
-        );
-        return;
-      }
+      const proxyUrl = NEXT_TOKEN_PROXY_API;
 
       setLogMessage(`✅ Google OAuth 인증 성공!
-백엔드 API (${BACKEND_TOKEN_API})로 토큰 교환 요청 중... (HttpOnly 쿠키 설정 예정)`);
+백엔드 프록시 API (${proxyUrl})로 토큰 교환 요청 중... (HttpOnly 쿠키 설정 예정)`);
 
       try {
         // FastAPI의 Form(...) 인자를 위해 FormData를 사용합니다.
         const formData = new FormData();
         formData.append("code", code);
 
-        const response = await fetch(BACKEND_TOKEN_API, {
+        // 2. fetch 대상을 Next.js API Route로 변경!
+        const response = await fetch(proxyUrl, {
           method: "POST",
           body: formData,
-          // ⭐ 중요: 백엔드가 설정한 쿠키를 수신하기 위해 credentials 포함 필요
+          // ⭐ 중요: credentials: "include" 유지.
+          // 브라우저가 Next.js API Route로부터 받은 Set-Cookie 헤더를 저장하기 위함.
           credentials: "include",
         });
 
         if (response.ok) {
-          // 1. 성공! 브라우저가 Set-Cookie 헤더를 통해 쿠키를 이미 저장했습니다.
-          const data = await response.json(); // 성공 메시지 본문 읽기
+          // 1. 성공! 브라우저가 Set-Cookie 헤더를 통해 쿠키를 이미 저장했습니다. (API Route에서 전달받음)
+          const data = await response.json(); 
 
           setLogMessage(`🎉 토큰 교환 성공!
-                    ${data.message || "쿠키가 안전하게 설정되었습니다."}`);
+                        ${data.message || "쿠키가 안전하게 설정되었습니다."}`);
 
-          // 2. 💡 문제 해결: router.push() 대신 router.replace() 사용
-          //    code 파라미터가 포함된 현재 URL을 '/uploader'로 대체하여 루프를 방지합니다.
-          router.replace("/uploader"); // <--- 이 부분을 push에서 replace로 변경
+          router.replace("/uploader");
         } else {
           // 3. 토큰 교환 실패
           const data = await response.json();
           setLogMessage(`❌ 토큰 교환 실패: 
-FastAPI 응답 오류: ${
+프록시 응답 오류: ${
             data.detail?.message || data.message || "알 수 없는 오류"
           }`);
         }
       } catch (e) {
-        // 네트워크 오류 또는 서버 연결 실패
-        setLogMessage(`❌ 통신 오류: FastAPI 서버에 연결할 수 없습니다. 서버(29001)가 실행 중인지 확인하세요.
+        // 네트워크 오류 또는 서버 연결 실패 (주로 Next.js API Route 접근 실패 시 발생)
+        setLogMessage(`❌ 통신 오류: Next.js API Route에 연결할 수 없습니다. 
 오류 상세: ${e instanceof Error ? e.message : String(e)}`);
       }
     };
@@ -81,15 +76,13 @@ FastAPI 응답 오류: ${
       // State 값 검증 (CSRF 방지)
       const originalState = sessionStorage.getItem(OAUTH_STATE_KEY);
       sessionStorage.removeItem(OAUTH_STATE_KEY);
+      
+      // 상태 검증 실패 로직 (데스크탑 통합 방식 지원)
       if (returnedState !== originalState || !originalState) {
         setLogMessage(
           `🚨 상태 검증 실패 (원래 상태 없음). 시도: 백엔드로 코드 전달하여 교환 시도 중...`
         );
-
-        // 데스크탑에서 직접 브라우저를 열어 로그인한 경우, 브라우저 측에 원래 state가 없습니다.
-        // 이 경우 프론트엔드는 받은 code/state를 백엔드에 전달(forward)하고, 백엔드가 토큰 교환을 수행합니다.
-        // 이는 데스크탑-통합(single) 방식 지원을 위한 안전한 보완입니다.
-
+        
         if (!BACKEND_AUTH_FORWARD) {
           setLogMessage(
             "❌ 백엔드 전달 엔드포인트가 구성되어 있지 않습니다. 서버 환경변수를 확인하세요."
@@ -98,6 +91,8 @@ FastAPI 응답 오류: ${
         }
 
         const forwardExchange = async () => {
+          // 이 부분은 BACKEND_AUTH_FORWARD로 직접 요청하며 CORS 문제가 발생할 수 있습니다.
+          // 만약 이 부분도 문제가 된다면 /api/auth/forward 프록시를 별도로 생성해야 합니다.
           try {
             const resp = await fetch(BACKEND_AUTH_FORWARD, {
               method: "POST",
@@ -106,8 +101,6 @@ FastAPI 응답 오류: ${
               body: JSON.stringify({ code: authCode, state: returnedState }),
             });
             if (resp.ok) {
-              // 데스크탑에서 연 브라우저의 경우 업로더로 이동시키지 않고
-              // 사용자에게 인증 완료 메시지를 표시하도록 합니다.
               setLogMessage("✅ 인증 완료 되었습니다. 창을 닫아주세요.");
             } else {
               const d = await resp.json();
