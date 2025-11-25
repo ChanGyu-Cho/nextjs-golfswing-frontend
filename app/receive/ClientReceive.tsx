@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 export default function ClientReceive() {
   const searchParams = useSearchParams();
   const jobId = searchParams?.get("job_id") || undefined;
+  const accessTokenParam = searchParams?.get("access_token") || undefined;
 
   const [status, setStatus] = useState<string>(jobId ? `대기 중: Job ${jobId}` : "Job ID 없음");
   const [resultUrls, setResultUrls] = useState<string[] | null>(null);
@@ -28,10 +29,17 @@ export default function ClientReceive() {
 
     const poll = async () => {
       try {
-        const resp = await fetch(`/api/result/status?job_id=${encodeURIComponent(jobId)}`, {
-          method: 'GET',
-          credentials: 'include'
-        });
+        // If an access_token was provided in the URL, use it for Authorization header.
+        const headers: any = {};
+        const fetchOpts: any = { method: 'GET' };
+        if (accessTokenParam) {
+          headers['Authorization'] = `Bearer ${accessTokenParam}`;
+          fetchOpts.headers = headers;
+        } else {
+          // default behavior: rely on HttpOnly cookies via credentials
+          fetchOpts.credentials = 'include';
+        }
+        const resp = await fetch(`/api/result/status?job_id=${encodeURIComponent(jobId)}`, fetchOpts);
         if (!resp.ok) {
           if (resp.status === 404) {
             setStatus('Job not found');
@@ -129,8 +137,21 @@ export default function ClientReceive() {
       try {
         const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
         // frontend uses `/api/result/status` for polling, so WS endpoint is under `/api/result/ws/analysis`
-        const url = `${protocol}://${window.location.host}/api/result/ws/analysis`;
-        const ws = new WebSocket(url);
+        let url = `${protocol}://${window.location.host}/api/result/ws/analysis`;
+        // If token present, include as query param (fallback) and pass as subprotocol (preferred)
+        let ws: WebSocket;
+        try {
+          if (accessTokenParam) {
+            const qp = `?token=${encodeURIComponent(accessTokenParam)}`;
+            const wsUrl = url + qp;
+            ws = new WebSocket(wsUrl, [`Bearer ${accessTokenParam}`]);
+          } else {
+            ws = new WebSocket(url);
+          }
+        } catch (e) {
+          // fallback to plain ws
+          ws = new WebSocket(url);
+        }
         wsRef.current = ws;
 
         ws.onopen = () => {

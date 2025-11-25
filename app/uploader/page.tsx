@@ -1,9 +1,9 @@
 // app/uploader/page.tsx
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { exit } from 'process';
-import { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 // Client should not call the backend directly. Use local API proxy endpoints.
 const BACKEND_UPLOAD_API = '/api/upload';
@@ -20,6 +20,9 @@ if (!WS_BASE_URL) {
 
 export default function UploaderPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const accessTokenParam = searchParams.get('access_token');
+  const oneTimeTokenParam = searchParams.get('one_time_token');
   const [file, setFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string>('업로드할 파일을 선택해주세요.');
     const [inProgress, setInProgress] = useState<boolean>(false);
@@ -28,6 +31,27 @@ export default function UploaderPage() {
   // 💡 Job ID 상태 및 WebSocket 객체 참조 (추가된 부분)
   const [jobId, setJobId] = useState<string | null>(null); 
   const wsRef = useRef<WebSocket | null>(null); 
+
+  const consumedRef = useRef(false);
+
+  useEffect(() => {
+    // If a one-time token is present, consume it to set HttpOnly cookie
+    if (oneTimeTokenParam && !consumedRef.current) {
+      (async () => {
+        try {
+          await fetch('/api/auth/consume', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: oneTimeTokenParam }),
+            credentials: 'include',
+          });
+        } catch (e) {
+          // ignore; upload will handle auth failures
+        }
+        consumedRef.current = true;
+      })();
+    }
+  }, [oneTimeTokenParam]);
 
   // ----------------------------------------------------
   // 1. 파일 선택 핸들러
@@ -144,12 +168,17 @@ export default function UploaderPage() {
         file_size_bytes: file.size,
       };
 
-      const response = await fetch(BACKEND_UPLOAD_API, {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (accessTokenParam) headers['Authorization'] = `Bearer ${accessTokenParam}`;
+
+      const fetchOpts: any = {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload),
-        credentials: 'include', 
-      });
+      };
+      if (!accessTokenParam) fetchOpts.credentials = 'include';
+
+      const response = await fetch(BACKEND_UPLOAD_API, fetchOpts);
 
       if (!response.ok) {
         // 인증 필요(401)인 경우: 사용자에게 친절히 안내하고 로그인 페이지로 유도
@@ -213,8 +242,12 @@ export default function UploaderPage() {
 
 
 
-      // 결과(수신) 페이지로 이동(현재는 result가 아닌, receive로 이동, receive 쪽에서 WS 재연결 및 등록 처리)
-      router.push(`/receive?job_id=${encodeURIComponent(job_id)}`);
+      // 결과 수신을 위한 로딩 페이지로 이동 (로딩 페이지가 폴링 후 receive로 리디렉션)
+      // Forward tokens to loading if present so loading/receive can continue authenticated flows
+      let loadingUrl = `/loading?job_id=${encodeURIComponent(job_id)}`;
+      if (accessTokenParam) loadingUrl += `&access_token=${encodeURIComponent(accessTokenParam)}`;
+      else if (oneTimeTokenParam) loadingUrl += `&one_time_token=${encodeURIComponent(oneTimeTokenParam)}`;
+      router.push(loadingUrl);
       
     } catch (error) {
       console.error('업로드 실패 상세:', error);
@@ -249,42 +282,53 @@ export default function UploaderPage() {
   // ----------------------------------------------------
 
   return (
-    <div className="card-container">
-      <h1>🎥 비디오 업로드 및 실시간 분석</h1>
+    <div>
+      <div className="flex justify-center items-start mt-[24px]">
+        <div className="border border-[#e6e6e6] bg-white rounded-[14px] w-[720px]">
+          <div className="bg-[#f6fcf5] p-[26px] rounded-t-[14px] h-[160px] flex flex-col justify-between">
+            <div className="flex flex-col">
+              <div className="font-bold text-[28px] pb-[10px]">2D 비디오 업로드</div>
+              <div className="text-[14px] text-[#374151]">
+                휴대폰으로 촬영한 MP4 파일을 업로드하면 서버에서 분석을 시작합니다.
+                업로드가 완료되면 결과 페이지로 자동 이동합니다.
+              </div>
+            </div>
+          </div>
+          <div className="px-[26px] py-[20px] flex flex-col gap-[14px]">
+            <label className="text-[14px] font-semibold">파일 선택 (.mp4)</label>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".mp4,video/mp4"
+              className="border border-[#e5e7eb] rounded px-[10px] py-[8px]"
+            />
 
-      <div style={{ margin: '20px 0' }}>
-        <input 
-          type="file" 
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          accept=".mp4,video/mp4" 
-          style={{ display: 'block', marginBottom: '10px' }}
-        />
+            <div className="flex items-center gap-[12px]">
+              <button
+                onClick={handleUpload}
+                disabled={!file || inProgress}
+                className={`px-[18px] py-[10px] rounded text-white font-semibold ${file && !inProgress ? 'bg-[#1f8552]' : 'bg-[#9ca3af]'}`}
+              >
+                {file ? `${file.name} 업로드` : '파일 선택 후 업로드'}
+              </button>
+
+              <button
+                onClick={() => { if (fileInputRef.current) fileInputRef.current.value = ''; setFile(null); setUploadStatus('업로드할 파일을 선택해주세요.'); }}
+                className="px-[14px] py-[8px] border border-[#e5e7eb] rounded text-[#374151]"
+              >
+                선택 취소
+              </button>
+            </div>
+
+            <pre className="text-[13px] text-[#374151] whitespace-pre-wrap bg-[#fbfbfb] p-[12px] rounded border border-[#f1f5f9]">
+              {uploadStatus}
+            </pre>
+
+            {/* 로그아웃은 상단 공용 영역에서 처리하므로 여기서는 표시하지 않습니다. */}
+          </div>
+        </div>
       </div>
-
-      <button
-        onClick={handleUpload}
-        disabled={!file || inProgress}
-        className="btn-primary"
-      >
-        {file ? `${file.name} 업로드 시작` : '파일을 선택하세요'}
-  </button>
-
-      <pre className="log-output"> 
-        {uploadStatus}
-        {jobId && !uploadStatus.includes('성공') && !uploadStatus.includes('실패') && !uploadStatus.includes('해제됨') && (
-          <div>{'\n\n'}[대기 중] WebSocket 연결 유지: Job ID {jobId}</div>
-        )}
-      </pre>
-      
-      <hr style={{ margin: '30px 0' }} />
-      
-      <button 
-        onClick={handleLogout} 
-        className="logout-button"
-      >
-        로그아웃 (토큰 세션 제거 필요)
-      </button>
     </div>
   );
 }

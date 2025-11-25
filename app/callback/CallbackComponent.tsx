@@ -50,9 +50,20 @@ function CallbackComponent() {
 
         if (response.ok) {
           // 1. 성공! 브라우저가 Set-Cookie 헤더를 통해 쿠키를 이미 저장했습니다. (API Route에서 전달받음)
-          // 간단한 성공 메시지 후 메인으로 이동
-          setLogMessage("🎉 인증에 성공했습니다. 메인으로 이동합니다...");
-          setTimeout(() => router.replace('/main'), 500);
+          // 우선 대상(redirect) URL 결정: callback URL에 job_id 또는 토큰 파라가 있으면 원래 로딩으로 복귀
+          const jobId = searchParams.get('job_id');
+          const accessToken = searchParams.get('access_token');
+          const oneTimeToken = searchParams.get('one_time_token');
+
+          let target = '/main';
+          if (jobId) {
+            target = `/loading?job_id=${encodeURIComponent(jobId)}`;
+            if (accessToken) target += `&access_token=${encodeURIComponent(accessToken)}`;
+            else if (oneTimeToken) target += `&one_time_token=${encodeURIComponent(oneTimeToken)}`;
+          }
+
+          setLogMessage("🎉 인증에 성공했습니다. 이전 작업으로 돌아갑니다...");
+          setTimeout(() => router.replace(target), 500);
         } else {
           // 3. 토큰 교환 실패
           const data = await response.json();
@@ -94,7 +105,19 @@ function CallbackComponent() {
               body: JSON.stringify({ code: authCode, state: returnedState }),
             });
             if (resp.ok) {
-                  setLogMessage("✅ 인증 완료 되었습니다. 창을 닫아주세요.");
+                  // Forward-exchange succeeded. If job_id present, redirect there.
+                  const jobId = searchParams.get('job_id');
+                  const accessToken = searchParams.get('access_token');
+                  const oneTimeToken = searchParams.get('one_time_token');
+                  if (jobId) {
+                    let target = `/loading?job_id=${encodeURIComponent(jobId)}`;
+                    if (accessToken) target += `&access_token=${encodeURIComponent(accessToken)}`;
+                    else if (oneTimeToken) target += `&one_time_token=${encodeURIComponent(oneTimeToken)}`;
+                    setLogMessage('✅ 인증 완료 되었습니다. 이전 작업으로 돌아갑니다...');
+                    setTimeout(() => router.replace(target), 500);
+                  } else {
+                    setLogMessage("✅ 인증 완료 되었습니다. 창을 닫아주세요.");
+                  }
                 } else {
                   const d = await resp.json();
                   setLogMessage(`❌ 인증 전달 실패: ${d.detail || JSON.stringify(d)}`);
@@ -120,18 +143,23 @@ function CallbackComponent() {
     }
   }, [searchParams, router]);
   return (
-    <div style={{ padding: 40, color: "var(--foreground)", maxWidth: 780, margin: '0 auto' }}>
-      <h2 style={{ marginBottom: 12 }}>인증 처리</h2>
-      <div className="card-muted" style={{ padding: 18, borderRadius: 8, background: 'rgba(0,0,0,0.03)' }}>
-        <p style={{ margin: 0 }}>{logMessage}</p>
-      </div>
-      <div style={{ marginTop: 18 }}>
-        <button
-          onClick={() => router.push('/login')}
-          className="btn-primary"
-        >
-          로그인 페이지로 이동
-        </button>
+    <div className="flex justify-center mt-[30px]">
+      <div className="border border-[#e6e6e6] bg-white rounded-[12px] w-[720px]">
+        <div className="bg-[#f6fcf5] p-[20px] rounded-t-[12px]">
+          <div className="font-bold text-[20px]">인증 처리</div>
+        </div>
+        <div className="p-[18px]">
+          <div className="text-[14px] text-[#374151] whitespace-pre-wrap">{logMessage}</div>
+
+          <div className="mt-[18px]">
+            <button
+              onClick={() => router.push('/main')}
+              className="px-[16px] py-[10px] rounded bg-[#1f8552] text-white font-semibold"
+            >
+              메인으로 이동
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

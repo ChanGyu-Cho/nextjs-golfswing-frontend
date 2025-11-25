@@ -19,7 +19,7 @@ function MainComponent() {
             </div>
             <div
               className="w-full bg-white border border-[#1f8552] text-[#1f8552] text-[16px] rounded-[4px] px-[15px] py-[10px] font-semibold text-center  cursor-pointer"
-              onClick={() => router.push("/result")}
+              onClick={() => router.push("/uploader")}
             >
               시작하기
             </div>
