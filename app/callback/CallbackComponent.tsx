@@ -13,8 +13,7 @@ const OAUTH_STATE_KEY = "oauth_state";
 
 function CallbackComponent() {
   const searchParams = useSearchParams();
-  const [logMessage, setLogMessage] = useState("인증 코드 수신 및 검증 중...");
-  const [tokenData, setTokenData] = useState<any | null>(null);
+  const [logMessage, setLogMessage] = useState("인증 처리 중입니다...");
   const router = useRouter();
 
   useEffect(() => {
@@ -51,19 +50,13 @@ function CallbackComponent() {
 
         if (response.ok) {
           // 1. 성공! 브라우저가 Set-Cookie 헤더를 통해 쿠키를 이미 저장했습니다. (API Route에서 전달받음)
-          const data = await response.json(); 
-
-          setLogMessage(`🎉 토큰 교환 성공!
-                        ${data.message || "쿠키가 안전하게 설정되었습니다."}`);
-
-          router.replace("/uploader");
+          // 간단한 성공 메시지 후 메인으로 이동
+          setLogMessage("🎉 인증에 성공했습니다. 메인으로 이동합니다...");
+          setTimeout(() => router.replace('/main'), 500);
         } else {
           // 3. 토큰 교환 실패
           const data = await response.json();
-          setLogMessage(`❌ 토큰 교환 실패: 
-프록시 응답 오류: ${
-            data.detail?.message || data.message || "알 수 없는 오류"
-          }`);
+          setLogMessage(`❌ 인증 실패: ${data.detail?.message || data.message || "알 수 없는 오류"}`);
         }
       } catch (e) {
         // 네트워크 오류 또는 서버 연결 실패 (주로 Next.js API Route 접근 실패 시 발생)
@@ -101,12 +94,10 @@ function CallbackComponent() {
               body: JSON.stringify({ code: authCode, state: returnedState }),
             });
             if (resp.ok) {
-              setLogMessage("✅ 인증 완료 되었습니다. 창을 닫아주세요.");
-            } else {
-              const d = await resp.json();
-              setLogMessage(
-                `❌ 백엔드 전달 실패: ${d.detail || JSON.stringify(d)}`
-              );
+                  setLogMessage("✅ 인증 완료 되었습니다. 창을 닫아주세요.");
+                } else {
+                  const d = await resp.json();
+                  setLogMessage(`❌ 인증 전달 실패: ${d.detail || JSON.stringify(d)}`);
             }
           } catch (e) {
             setLogMessage(
@@ -123,49 +114,25 @@ function CallbackComponent() {
       // State 검증 성공 후 토큰 교환 시작
       exchangeToken(authCode);
     } else if (searchParams.toString().length > 0) {
-      setLogMessage(
-        `ℹ️ 예상치 못한 콜백입니다. URL 파라미터가 있지만 'code'가 없습니다.`
-      );
+      setLogMessage("콜백 파라미터가 올바르지 않습니다.");
     } else {
-      setLogMessage("콜백 URL로 접근했지만, 'code' 파라미터가 없습니다.");
+      setLogMessage("인증 코드가 없습니다.");
     }
   }, [searchParams, router]);
   return (
-    <div style={{ padding: 50, color: "var(--foreground)" }}>
-      <h1>인증 콜백 처리</h1>
-      <pre className="card-muted" style={{ whiteSpace: "pre-wrap" }}>
-        {logMessage}
-      </pre>
-
-      {tokenData && (
-        <div
-          style={{
-            marginTop: "20px",
-            border: "1px solid #ccc",
-            padding: "15px",
-            backgroundColor: "#f9f9f9",
-          }}
+    <div style={{ padding: 40, color: "var(--foreground)", maxWidth: 780, margin: '0 auto' }}>
+      <h2 style={{ marginBottom: 12 }}>인증 처리</h2>
+      <div className="card-muted" style={{ padding: 18, borderRadius: 8, background: 'rgba(0,0,0,0.03)' }}>
+        <p style={{ margin: 0 }}>{logMessage}</p>
+      </div>
+      <div style={{ marginTop: 18 }}>
+        <button
+          onClick={() => router.push('/login')}
+          className="btn-primary"
         >
-          <h3>수신된 토큰 정보 (ID Token을 안전하게 저장해야 합니다):</h3>
-          <pre
-            style={{
-              whiteSpace: "pre-wrap",
-              wordWrap: "break-word",
-              fontSize: "12px",
-            }}
-          >
-            {JSON.stringify(tokenData, null, 2)}
-          </pre>
-        </div>
-      )}
-
-      <button
-        onClick={() => router.push("/login")}
-        className="btn-primary"
-        style={{ marginTop: "20px" }}
-      >
-        다시 로그인 페이지로
-      </button>
+          로그인 페이지로 이동
+        </button>
+      </div>
     </div>
   );
 }
