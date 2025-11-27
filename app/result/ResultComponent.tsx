@@ -11,8 +11,8 @@ function toWebSocketBase() {
   // If an explicit WS base is provided via env, use it; otherwise build from window.location.
   let base: string | undefined = process.env.NEXT_PUBLIC_WS_BASE_URL;
   if (!base) {
-    if (typeof window === 'undefined') {
-      throw new Error('Window is unavailable and no WS base env is configured');
+    if (typeof window === "undefined") {
+      throw new Error("Window is unavailable and no WS base env is configured");
     }
     const origin = window.location.origin;
     base = origin;
@@ -20,9 +20,10 @@ function toWebSocketBase() {
 
   // convert http(s) origin to ws(s)
   let url = base;
-  if (url.startsWith('http://')) url = 'ws://' + url.slice('http://'.length);
-  else if (url.startsWith('https://')) url = 'wss://' + url.slice('https://'.length);
-  url = url.replace(/\/$/, '');
+  if (url.startsWith("http://")) url = "ws://" + url.slice("http://".length);
+  else if (url.startsWith("https://"))
+    url = "wss://" + url.slice("https://".length);
+  url = url.replace(/\/$/, "");
   return `${url}/api/result/ws/analysis`;
 }
 
@@ -131,7 +132,7 @@ function ResultComponent() {
     };
   }, [jobId]);
   return (
-    <div className="flex flex-col justify-center items-center bg-[#f6fcf5]  py-[50px]">
+    <div className="flex flex-col justify-center items-center bg-[#eef9ee]  py-[50px]">
       <div>
         <ModelComponent />
         <MetricsComponent />

@@ -57,7 +57,7 @@ function MainHeader() {
         </div>
       </div> */}
       <div
-        className="cursor-pointer text-[22px]"
+        className="cursor-pointer text-[22px] text-black"
         onClick={() => router.push("/mypage")}
       >
         MY PAGE

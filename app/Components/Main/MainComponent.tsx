@@ -7,13 +7,15 @@ import { faCheck } from "@fortawesome/free-solid-svg-icons";
 function MainComponent() {
   const router = useRouter();
   return (
-    <div className="flex justify-center items-center h-full">
+    <div className="flex justify-center items-center h-full bg-white">
       <div className="flex flex-row gap-[50px]">
         <div className="border border-[#e6e6e6] bg-white rounded-[14px] w-[500px]">
-          <div className="bg-[#f6fcf5] p-[26px] rounded-t-[14px] h-[250px] flex flex-col justify-between">
+          <div className="bg-[#eef9ee] p-[26px] rounded-t-[14px] h-[250px] flex flex-col justify-between">
             <div className="flex flex-col">
-              <div className="font-bold text-[32px] pb-[30px]">2D 분석</div>
-              <div className="text-[16px] pb-[25px]">
+              <div className="font-bold text-[32px] pb-[30px] text-black">
+                2D 분석
+              </div>
+              <div className="text-[16px] pb-[25px] text-black">
                 휴대폰으로 동작을 분석해보는 가장 빠르고 쉬운 방법
               </div>
             </div>
@@ -24,7 +26,7 @@ function MainComponent() {
               시작하기
             </div>
           </div>
-          <div className="px-[26px] py-[20px] flex flex-col gap-[10px]">
+          <div className="px-[26px] py-[20px] flex flex-col gap-[10px] text-black">
             <div className="flex flex-row items-center gap-[5px]">
               <div className="text-[#1f8552]">
                 <FontAwesomeIcon icon={faCheck} />
@@ -51,11 +53,13 @@ function MainComponent() {
             </div>
           </div>
         </div>
-        <div className="border border-[#e6e6e6] bg-white rounded-[14px] w-[500px]">
-          <div className="bg-[#f6fcf5] p-[26px] rounded-t-[14px] h-[250px] flex flex-col justify-between">
+        <div className="border border-[#e6e6e6] bg-white rounded-[14px] w-[500px] text-black">
+          <div className="bg-[#eef9ee] p-[26px] rounded-t-[14px] h-[250px] flex flex-col justify-between">
             <div className="flex flex-col">
-              <div className="font-bold text-[32px] pb-[30px]">3D 분석</div>
-              <div className="text-[16px] pb-[25px]">
+              <div className="font-bold text-[32px] pb-[30px] text-black">
+                3D 분석
+              </div>
+              <div className="text-[16px] pb-[25px] text-black">
                 3D 카메라로 동작을 정확하고 세밀하게 분석해보는 가장 기술적인
                 방법
               </div>
