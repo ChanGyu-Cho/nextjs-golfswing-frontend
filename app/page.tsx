@@ -48,10 +48,10 @@ export default function Home() {
   }, [textIndex, textCount, isTypingPaused, list]);
 
   return (
-    <div className="h-[calc(100vh-99px)]">
+    <div className="h-[calc(100vh-99px)] bg-white">
       <div className="flex flex-col items-center pt-[150px]">
         <div className="flex flex-col items-center gap-[30px] h-[350px]">
-          <div className="text-[48px] leading-[50px] font-bold">
+          <div className="text-[48px] leading-[50px] font-bold text-black">
             당신의 스윙이 궁금할 때
           </div>
           <div className="text-[120px] leading-[100px] font-bold text-[#166852]">
@@ -65,7 +65,9 @@ export default function Home() {
           className="bg-[#1f8552] text-white rounded-[10px] text-[24px] py-[20px] px-[32px] font-bold cursor-pointer"
           onClick={() => {
             const state = Math.random().toString(36).substring(2, 15);
-            try { sessionStorage.setItem('oauth_state', state); } catch (e) {}
+            try {
+              sessionStorage.setItem("oauth_state", state);
+            } catch (e) {}
 
             const COGNITO_DOMAIN = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
             const CLIENT_ID = process.env.NEXT_PUBLIC_CLIENT_ID;
@@ -74,7 +76,7 @@ export default function Home() {
             const RESPONSE_TYPE = process.env.NEXT_PUBLIC_RESPONSE_TYPE;
 
             if (!COGNITO_DOMAIN || !CLIENT_ID || !REDIRECT_URI) {
-              router.push('/login');
+              router.push("/login");
               return;
             }
 
