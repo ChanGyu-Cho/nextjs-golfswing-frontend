@@ -22,7 +22,7 @@ function MainHeader() {
     },
   ];
   return (
-    <div className="flex flex-row px-[50px] justify-between items-center sticky top-0 bg-white border-b border-b-[#f3f4f6]">
+    <div className="flex flex-row px-[50px] justify-between items-center sticky top-0 bg-white dark:bg-slate-900 border-b border-b-[#f3f4f6] dark:border-b-slate-700">
       <div className="flex flex-row gap-[100px] items-center">
         <div className="text-[28px]" onClick={() => router.push("/")}>
           <Image
@@ -57,7 +57,7 @@ function MainHeader() {
         </div>
       </div> */}
       <div
-        className="cursor-pointer text-[22px]"
+        className="cursor-pointer text-[22px] text-black dark:text-slate-200 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
         onClick={() => router.push("/mypage")}
       >
         MY PAGE

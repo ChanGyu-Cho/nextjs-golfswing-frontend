@@ -7,6 +7,7 @@ import SwingPanel from "./SwingPanel";
 import HeadPanel from "./HeadPanel";
 import SummaryMetrics from "./SummaryMetrics";
 import MetricRow from "./MetricRow";
+import DebugResultJson from "./DebugResultJson";
 import { findMetric } from "./metricUtils";
 
 type Props = {
@@ -40,7 +41,7 @@ export default function ReceiveResult({ parsedJson, resultUrls, resultContents }
 
   return (
     <div>
-      <div className="text-[30px] font-bold pb-[30px] text-[#1f8552]">Swing Metrics Analysis</div>
+      <div className="text-[30px] font-bold pb-[30px] text-[#1f8552] dark:text-[#4ade80]">Swing Metrics Analysis</div>
       <div className="flex flex-col gap-[50px]">
         <ModelSummary parsedJson={parsedJson} />
         <SummaryBar parsedJson={parsedJson} />
@@ -86,12 +87,15 @@ export default function ReceiveResult({ parsedJson, resultUrls, resultContents }
         resultUrls={resultUrls}
         leftNode={<div>
           <div className="text-[26px] font-bold pb-[10px]">Shoulder</div>
-          <div className="text-sm text-gray-600">어깨 관련 오버레이</div>
+          <div className="text-sm text-gray-600 dark:text-slate-400">어깨 관련 오버레이</div>
         </div>}
       />
 
         {/* Summary metrics at the bottom */}
         <div className="max-w-[1500px]"><SummaryMetrics parsedJson={parsedJson} /></div>
+
+        {/* Debug Component - Remove in production */}
+        <DebugResultJson resultJson={parsedJson} enabled={true} />
       </div>
     </div>
   );

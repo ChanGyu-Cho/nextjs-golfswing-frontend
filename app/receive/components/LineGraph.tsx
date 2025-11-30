@@ -28,7 +28,7 @@ export default function LineGraph({ data = [], highlightIndex = null, width = 36
   }
 
   return (
-    <svg width={w} height={h} className="rounded bg-white">
+    <svg width={w} height={h} className="rounded bg-white dark:bg-slate-700">
       <polyline fill="none" stroke="#3b82f6" strokeWidth={2} points={points} />
       {highlightX !== null ? (
         <>

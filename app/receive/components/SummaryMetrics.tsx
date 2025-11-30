@@ -14,9 +14,9 @@ export default function SummaryMetrics({ parsedJson }: Props) {
   const head = parsedJson?.metrics?.head?.grade || parsedJson?.head?.grade || parsedJson?.metrics?.head_grade || 'N/A';
 
   return (
-    <div className="rounded p-4">
-      <h4 className="font-semibold">Summary Metrics</h4>
-      <div className="mt-2 text-sm">
+    <div className="rounded p-4 bg-white dark:bg-slate-800">
+      <h4 className="font-semibold text-black dark:text-white">Summary Metrics</h4>
+      <div className="mt-2 text-sm text-black dark:text-slate-300">
         <div>Model: {model}</div>
         <div className="mt-1">X-Factor: {x !== null && x !== undefined ? `${Number(x).toFixed(1)}°` : 'N/A'}</div>
         <div className="mt-1">COM: {bs !== null && ds !== null ? `BS:${bs}% DS:${ds}%` : 'N/A'}</div>

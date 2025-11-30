@@ -108,7 +108,7 @@ export default function MetricRow({ metricKey, metricObj, leftNode, resultUrls }
   const overlay = findOverlayForMetric(metricObj, metricKey, resultUrls);
 
   return (
-    <div className="flex flex-row gap-[40px] bg-white rounded-[14px] max-w-[1500px] py-[40px] px-[56px]">
+    <div className="flex flex-row gap-[40px] bg-white dark:bg-slate-800 rounded-[14px] max-w-[1500px] py-[40px] px-[56px]">
       <div className="w-[40%]">{leftNode}</div>
       <div className="rounded-[14px] w-[60%] overflow-hidden">
         {overlay ? (
@@ -116,7 +116,7 @@ export default function MetricRow({ metricKey, metricObj, leftNode, resultUrls }
             <source src={overlay} type="video/mp4" />
           </video>
         ) : (
-          <div style={{ padding: 24 }} className="text-sm text-gray-500">Overlay 없음</div>
+          <div style={{ padding: 24 }} className="text-sm text-gray-500 dark:text-slate-400">Overlay 없음</div>
         )}
       </div>
     </div>

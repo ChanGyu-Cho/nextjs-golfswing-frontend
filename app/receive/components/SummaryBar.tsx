@@ -40,23 +40,23 @@ export default function SummaryBar({ parsedJson }: Props) {
   const head = getHead(parsedJson);
 
   return (
-    <div className="rounded bg-white p-4 mt-4 max-w-[1500px]">
+    <div className="rounded bg-white dark:bg-slate-800 p-4 mt-4 max-w-[1500px]">
       <div className="flex items-center justify-between">
         <div className="w-1/5 text-center">
-          <div className="text-sm text-gray-500">model 결과</div>
-          <div className="text-2xl font-bold">{(parsedJson?.stgcn_inference?.prediction || parsedJson?.model_result?.prediction || 'N/A').toString().toUpperCase()}</div>
+          <div className="text-sm text-gray-500 dark:text-slate-400">model 결과</div>
+          <div className="text-2xl font-bold text-black dark:text-white">{(parsedJson?.stgcn_inference?.prediction || parsedJson?.model_result?.prediction || 'N/A').toString().toUpperCase()}</div>
         </div>
         <div className="w-1/5 text-center">
-          <div className="text-sm text-gray-500">XFACTOR</div>
-          <div className="text-2xl font-bold">{x !== null && x !== undefined ? `${Number(x).toFixed(1)}°` : 'N/A'}</div>
+          <div className="text-sm text-gray-500 dark:text-slate-400">XFACTOR</div>
+          <div className="text-2xl font-bold text-black dark:text-white">{x !== null && x !== undefined ? `${Number(x).toFixed(1)}°` : 'N/A'}</div>
         </div>
         <div className="w-1/5 text-center">
-          <div className="text-sm text-gray-500">COM</div>
-          <div className="text-2xl font-bold">{com.bs !== undefined && com.ds !== undefined ? `BS:${com.bs}%\nDS:${com.ds}%` : 'N/A'}</div>
+          <div className="text-sm text-gray-500 dark:text-slate-400">COM</div>
+          <div className="text-2xl font-bold text-black dark:text-white">{com.bs !== undefined && com.ds !== undefined ? `BS:${com.bs}%\nDS:${com.ds}%` : 'N/A'}</div>
         </div>
         <div className="w-1/5 text-center">
-          <div className="text-sm text-gray-500">SWING</div>
-          <div className="text-2xl font-bold">{swing ? `${Number(swing).toFixed(1)} km/h` : 'N/A'}</div>
+          <div className="text-sm text-gray-500 dark:text-slate-400">SWING</div>
+          <div className="text-2xl font-bold text-black dark:text-white">{swing ? `${Number(swing).toFixed(1)} km/h` : 'N/A'}</div>
         </div>
         <div className="w-1/5 text-center">
           <div className="text-sm text-gray-500">HEAD</div>

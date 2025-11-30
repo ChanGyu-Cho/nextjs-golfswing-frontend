@@ -50,15 +50,15 @@ export default function COMPanel({ parsedJson, impactFrame = null }: Props) {
 
   return (
     <div className="rounded p-4">
-      <h3 className="font-semibold">COM</h3>
+      <h3 className="font-semibold text-black dark:text-white">COM</h3>
       {!series || series.length === 0 ? (
-        <div className="mt-2 text-sm text-gray-500">그래프 데이터 없음</div>
+        <div className="mt-2 text-sm text-gray-500 dark:text-slate-400">그래프 데이터 없음</div>
       ) : (
         <div className="mt-2">
           <LineGraph data={(series || []).map(Number)} highlightIndex={impact ?? null} />
         </div>
       )}
-      <div className="mt-2 text-sm text-gray-600">COM 관련 지표 (Impact 위치는 빨간선으로 표시됩니다)</div>
+      <div className="mt-2 text-sm text-gray-600 dark:text-slate-400">COM 관련 지표 (Impact 위치는 빨간선으로 표시됩니다)</div>
       <div className="mt-3 text-sm">
         <div>BS: {bs !== null && bs !== undefined ? String(bs) : 'N/A' }%</div>
         <div>DS: {ds !== null && ds !== undefined ? String(ds) : 'N/A' }%</div>

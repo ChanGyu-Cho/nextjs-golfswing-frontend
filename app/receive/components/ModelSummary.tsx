@@ -75,26 +75,26 @@ export default function ModelSummary({ parsedJson }: Props) {
   }
 
   return (
-    <div className={`${bgColor} rounded-[14px] max-w-[1500px] py-[24px] px-[28px]`}>
+    <div className={`${bgColor} dark:bg-slate-800 rounded-[14px] max-w-[1500px] py-[24px] px-[28px]`}>
       <div>
         <div className="flex justify-between items-start">
           <div className="flex-1">
-            <div className="text-[20px] font-semibold">Model 결과</div>
-            <div className="text-[30px] font-bold text-[#1f8552] mt-2">{result.display}</div>
-            <div className="text-[16px] text-gray-700 mt-3">{text}</div>
+            <div className="text-[20px] font-semibold text-black dark:text-white">Model 결과</div>
+            <div className="text-[30px] font-bold text-[#1f8552] dark:text-[#4ade80] mt-2">{result.display}</div>
+            <div className="text-[16px] text-gray-700 dark:text-slate-300 mt-3">{text}</div>
           </div>
           
           {/* Probability Display Box */}
-          <div className="ml-6 bg-white rounded-[10px] p-[16px] min-w-[200px] border border-gray-200">
-            <div className="text-[14px] font-semibold text-gray-700 mb-3">확률 분석</div>
+          <div className="ml-6 bg-white dark:bg-slate-700 rounded-[10px] p-[16px] min-w-[200px] border border-gray-200 dark:border-slate-600">
+            <div className="text-[14px] font-semibold text-gray-700 dark:text-slate-200 mb-3">확률 분석</div>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-[13px] text-gray-600">일반인</span>
-                <span className="text-[16px] font-bold text-gray-800">{result.amateurProb.toFixed(1)}%</span>
+                <span className="text-[13px] text-gray-600 dark:text-slate-400">일반인</span>
+                <span className="text-[16px] font-bold text-gray-800 dark:text-white">{result.amateurProb.toFixed(1)}%</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-[13px] text-gray-600">프로</span>
-                <span className="text-[16px] font-bold text-gray-800">{result.proProb.toFixed(1)}%</span>
+                <span className="text-[13px] text-gray-600 dark:text-slate-400">프로</span>
+                <span className="text-[16px] font-bold text-gray-800 dark:text-white">{result.proProb.toFixed(1)}%</span>
               </div>
             </div>
           </div>

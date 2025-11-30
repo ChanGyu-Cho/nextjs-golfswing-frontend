@@ -52,9 +52,9 @@ export default function SwingPanel({ parsedJson, impactFrame = null }: Props) {
 
   return (
     <div className="rounded p-4">
-      <h3 className="font-semibold">SWING SPEED</h3>
-      <div className="mt-2 text-xl font-bold">{max ? `${Number(max).toFixed(1)} km/h` : 'N/A'}</div>
-      <div className="text-sm text-gray-600">Impact: {impactSpeed ? `${impactSpeed.toFixed(1)} km/h` : 'N/A'}</div>
+      <h3 className="font-semibold text-black dark:text-white">SWING SPEED</h3>
+      <div className="mt-2 text-xl font-bold text-black dark:text-white">{max ? `${Number(max).toFixed(1)} km/h` : 'N/A'}</div>
+      <div className="text-sm text-gray-600 dark:text-slate-400">Impact: {impactSpeed ? `${impactSpeed.toFixed(1)} km/h` : 'N/A'}</div>
     </div>
   );
 }

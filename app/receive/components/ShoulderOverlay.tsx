@@ -22,12 +22,12 @@ export default function ShoulderOverlay({ resultUrls }: Props) {
   const url = findShoulder(resultUrls);
   return (
     <div className="rounded p-4">
-      <h4 className="font-semibold">Overlay</h4>
+      <h4 className="font-semibold text-black dark:text-white">Overlay</h4>
       <div className="mt-2">
         {url ? (
           <video src={url} controls className="w-full rounded" />
         ) : (
-          <div className="text-sm text-gray-500">Overlay 없음</div>
+          <div className="text-sm text-gray-500 dark:text-slate-400">Overlay 없음</div>
         )}
       </div>
     </div>
