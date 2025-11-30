@@ -227,6 +227,7 @@ export default function XfactorPanel({ parsedJson, impactFrame = null, currentFr
             data={timeseriesData}
             impactFrame={impactIndex}
             currentFrame={currentFrame}
+            height={380}
           />
           <div className="text-xs text-gray-500 dark:text-slate-400 mt-2">
             빨간 점선: Impact Frame ({impactIndex !== null ? `Frame ${impactIndex}` : "N/A"}) · 파란 선: 현재 재생 위치

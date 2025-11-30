@@ -1,8 +1,22 @@
 "use client";
 
 import React, { useMemo } from "react";
+import GenericMetricGraph from "./GenericMetricGraph";
 
-type Props = { parsedJson: any; impactFrame?: number | null };
+type Props = { parsedJson: any; impactFrame?: number | null; currentFrame?: number | null };
+
+/**
+ * Data Range Limitation for Clean Analysis
+ * (0 ~ impact_frame) × 2 범위만 표시
+ */
+function limitDataRange(data: number[], impactFrame: number | null): number[] {
+  if (impactFrame === null || data.length === 0) {
+    return data;
+  }
+  
+  const maxIndex = Math.min((impactFrame + 1) * 2 - 1, data.length - 1);
+  return data.slice(0, maxIndex + 1);
+}
 
 function extractCOMMetrics(parsedJson: any) {
   const comMetric = parsedJson?.metrics?.com_speed || parsedJson?.com_speed || null;
@@ -40,6 +54,40 @@ function extractCOMMetrics(parsedJson: any) {
     null;
 
   return { back_shift, down_shift, impact_offset, rms_pre_impact };
+}
+
+function extractCOMTimeseries(
+  parsedJson: any,
+  impactFrame: number | null | undefined
+): { data: number[]; impactIndex: number | null } {
+  let data: number[] = [];
+  let impactIndex: number | null =
+    typeof impactFrame === "number" ? impactFrame : null;
+
+  const comMetric = parsedJson?.metrics?.com_speed || parsedJson?.com_speed || null;
+  const comShiftMetric = comMetric?.metrics?.com_shift || comMetric?.com_shift || null;
+
+  // Try to extract com_rel_x timeseries (relative position to stance)
+  if (comShiftMetric?.metrics_data?.com_shift_timeseries) {
+    const seriesObj = comShiftMetric.metrics_data.com_shift_timeseries;
+    const entries = Object.keys(seriesObj)
+      .sort((a, b) => Number(a) - Number(b))
+      .map((k) => seriesObj[k]);
+
+    data = entries
+      .map((item: any) => {
+        if (item == null) return NaN;
+        if (typeof item === "number") return Number(item);
+        if (item.com_rel_x !== undefined && item.com_rel_x !== null) return Number(item.com_rel_x) * 100; // Convert to percentage
+        return NaN;
+      })
+      .filter((v) => !Number.isNaN(v));
+  }
+
+  // Apply data range limitation
+  const limitedData = limitDataRange(data, impactIndex);
+
+  return { data: limitedData, impactIndex };
 }
 
 function getCOMFeedback(metric: number | null, type: 'back' | 'down' | 'offset' | 'rms'): { level: string; feedback: string } {
@@ -132,25 +180,30 @@ export default function COMPanel({ parsedJson, impactFrame = null }: Props) {
   const offsetFeedback = getCOMFeedback(impact_offset, 'offset');
   const rmsFeedback = getCOMFeedback(rms_pre_impact, 'rms');
 
+  // Extract timeseries data for graph
+  const { data: timeseriesData, impactIndex } = useMemo(() => {
+    return extractCOMTimeseries(parsedJson, impactFrame);
+  }, [parsedJson, impactFrame]);
+
   return (
     <div className="flex flex-col gap-6">
       {/* 1. COM Stability Definition Box */}
       <div className="bg-blue-50 dark:bg-slate-700 border-l-4 border-blue-500 dark:border-blue-400 rounded-r p-4">
-        <div className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-2">
+        <div className="text-xs font-semibold text-blue-900 dark:text-blue-200 mb-2">
           💡 COM Stability 란?
         </div>
-        <div className="text-sm text-blue-800 dark:text-blue-100">
+        <div className="text-xs text-blue-800 dark:text-blue-100">
           COM Stability는 스윙 전체에서 몸의 중심이 얼마나 안정적으로 유지되는지를 보여주는 지표로, 일관된 타격과 거리 손실 방지에 결정적인 역할을 합니다.
         </div>
       </div>
 
       {/* 2. Back Shift Analysis */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-600">
-        <div className="flex items-baseline gap-3 mb-2">
-          <div className="text-3xl font-bold text-black dark:text-white">
+      <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-600">
+        <div className="flex items-baseline gap-2 mb-1">
+          <div className="text-2xl font-bold text-black dark:text-white">
             {back_shift !== null ? `${Number(back_shift).toFixed(1)}%` : 'N/A'}
           </div>
-          <div className={`text-sm font-semibold px-3 py-1 rounded ${
+          <div className={`text-xs font-semibold px-2 py-0.5 rounded ${
             backFeedback.level === '적정' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
             backFeedback.level === '부족' ? 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200' :
             backFeedback.level === '과도' ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' :
@@ -159,21 +212,21 @@ export default function COMPanel({ parsedJson, impactFrame = null }: Props) {
             {backFeedback.level}
           </div>
         </div>
-        <div className="text-xs text-gray-500 dark:text-slate-400 mb-2">
+        <div className="text-xs text-gray-500 dark:text-slate-400 mb-1">
           백스윍 체중 이동 · 적정: -15% ~ -25%
         </div>
-        <div className="text-sm text-gray-700 dark:text-slate-300">
+        <div className="text-xs text-gray-700 dark:text-slate-300">
           {backFeedback.feedback}
         </div>
       </div>
 
       {/* 3. Down Shift Analysis */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-600">
-        <div className="flex items-baseline gap-3 mb-2">
-          <div className="text-3xl font-bold text-black dark:text-white">
+      <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-600">
+        <div className="flex items-baseline gap-2 mb-1">
+          <div className="text-2xl font-bold text-black dark:text-white">
             {down_shift !== null ? `${Number(down_shift).toFixed(1)}%` : 'N/A'}
           </div>
-          <div className={`text-sm font-semibold px-3 py-1 rounded ${
+          <div className={`text-xs font-semibold px-2 py-0.5 rounded ${
             downFeedback.level === '적정' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
             downFeedback.level === '부족' ? 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200' :
             downFeedback.level === '과도' ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' :
@@ -182,21 +235,21 @@ export default function COMPanel({ parsedJson, impactFrame = null }: Props) {
             {downFeedback.level}
           </div>
         </div>
-        <div className="text-xs text-gray-500 dark:text-slate-400 mb-2">
+        <div className="text-xs text-gray-500 dark:text-slate-400 mb-1">
           다운스윍 체중 이동 · 적정: 20% ~ 30%
         </div>
-        <div className="text-sm text-gray-700 dark:text-slate-300">
+        <div className="text-xs text-gray-700 dark:text-slate-300">
           {downFeedback.feedback}
         </div>
       </div>
 
       {/* 4. Impact Offset Analysis */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-600">
-        <div className="flex items-baseline gap-3 mb-2">
-          <div className="text-3xl font-bold text-black dark:text-white">
+      <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-600">
+        <div className="flex items-baseline gap-2 mb-1">
+          <div className="text-2xl font-bold text-black dark:text-white">
             {impact_offset !== null ? `${Number(impact_offset).toFixed(1)}%` : 'N/A'}
           </div>
-          <div className={`text-sm font-semibold px-3 py-1 rounded ${
+          <div className={`text-xs font-semibold px-2 py-0.5 rounded ${
             offsetFeedback.level === '균형 있음' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
             offsetFeedback.level === '오른발 쏠림' ? 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200' :
             offsetFeedback.level === '왼발 과도' ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' :
@@ -205,21 +258,21 @@ export default function COMPanel({ parsedJson, impactFrame = null }: Props) {
             {offsetFeedback.level}
           </div>
         </div>
-        <div className="text-xs text-gray-500 dark:text-slate-400 mb-2">
+        <div className="text-xs text-gray-500 dark:text-slate-400 mb-1">
           임팩트 균형 지표 · 적정: 5% ~ 12%
         </div>
-        <div className="text-sm text-gray-700 dark:text-slate-300">
+        <div className="text-xs text-gray-700 dark:text-slate-300">
           {offsetFeedback.feedback}
         </div>
       </div>
 
       {/* 5. RMS Pre-Impact Analysis */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-600">
-        <div className="flex items-baseline gap-3 mb-2">
-          <div className="text-3xl font-bold text-black dark:text-white">
+      <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-600">
+        <div className="flex items-baseline gap-2 mb-1">
+          <div className="text-2xl font-bold text-black dark:text-white">
             {rms_pre_impact !== null ? `${Number(rms_pre_impact).toFixed(1)}%` : 'N/A'}
           </div>
-          <div className={`text-sm font-semibold px-3 py-1 rounded ${
+          <div className={`text-xs font-semibold px-2 py-0.5 rounded ${
             rmsFeedback.level === '안정적' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
             rmsFeedback.level === '보통' ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200' :
             rmsFeedback.level === '불안정' ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' :
@@ -228,13 +281,34 @@ export default function COMPanel({ parsedJson, impactFrame = null }: Props) {
             {rmsFeedback.level}
           </div>
         </div>
-        <div className="text-xs text-gray-500 dark:text-slate-400 mb-2">
+        <div className="text-xs text-gray-500 dark:text-slate-400 mb-1">
           스윙 안정성 지수 · 안정: &lt;10%, 보통: 10~20%, 불안정: &gt;20%
         </div>
-        <div className="text-sm text-gray-700 dark:text-slate-300">
+        <div className="text-xs text-gray-700 dark:text-slate-300">
           {rmsFeedback.feedback}
         </div>
       </div>
+
+      {/* 6. COM Timeseries Graph */}
+      {timeseriesData.length > 0 && (
+        <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-600">
+          <div className="text-sm font-semibold text-black dark:text-white mb-3">
+            📊 프레임별 체중 이동
+          </div>
+          <GenericMetricGraph
+            data={timeseriesData}
+            impactFrame={impactIndex}
+            currentFrame={null}
+            yAxisLabel="COM 위치 (%)"
+            lineColor="#3b82f6"
+            lineColorDark="#60a5fa"
+            height={300}
+          />
+          <div className="text-xs text-gray-500 dark:text-slate-400 mt-2">
+            빨간 점선: Impact Frame ({impactIndex !== null ? `Frame ${impactIndex}` : "N/A"})
+          </div>
+        </div>
+      )}
     </div>
   );
 }

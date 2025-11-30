@@ -19,6 +19,12 @@ type Props = {
 export default function ReceiveResult({ parsedJson, resultUrls, resultContents }: Props) {
   if (!parsedJson) return null;
 
+  // ✅ fps_info 추출
+  const fpsInfo = parsedJson?.fps_info ?? {
+    original_fps: 60,
+    output_fps: 60,
+  };
+
   // Search for impact_frame in all possible metric locations
   const impact_frame = 
     parsedJson?.impact_frame ??
@@ -35,9 +41,17 @@ export default function ReceiveResult({ parsedJson, resultUrls, resultContents }
 
   console.log("📍 ReceiveResult Debug:", {
     impact_frame,
+    fpsInfo,
+    fpsInfoRaw: parsedJson?.fps_info,
+    // fps_info 찾기: 다양한 경로 확인
+    fps_info_paths: {
+      root: parsedJson?.fps_info,
+      analysis: parsedJson?.analysis?.fps_info,
+      metadata: parsedJson?.metadata?.fps_info,
+    },
     hasXfactor: Boolean(parsedJson?.xfactor || findMetric(parsedJson, "xfactor")),
     xfactorStructure: parsedJson?.xfactor ? Object.keys(parsedJson.xfactor) : "not found",
-    jsonKeys: Object.keys(parsedJson).slice(0, 10),
+    jsonKeys: Object.keys(parsedJson).slice(0, 15), // 더 많은 키 확인
   });
 
   // Helper to get a specific metric object by canonical keys
@@ -72,6 +86,7 @@ export default function ReceiveResult({ parsedJson, resultUrls, resultContents }
             metricKey="xfactor"
             metricObj={xMetricObj}
             resultUrls={resultUrls}
+            fpsInfo={fpsInfo}
             leftNode={(currentFrame) => <XfactorPanel parsedJson={parsedJson} impactFrame={impact_frame} currentFrame={currentFrame} />}
           />
         )}
@@ -81,6 +96,7 @@ export default function ReceiveResult({ parsedJson, resultUrls, resultContents }
           metricKey="com_speed"
           metricObj={getMetricObj('com_speed') || getMetricObj('com_shift')}
           resultUrls={resultUrls}
+          fpsInfo={fpsInfo}
           leftNode={<COMPanel parsedJson={parsedJson} impactFrame={impact_frame} />}
         />
 
@@ -89,6 +105,7 @@ export default function ReceiveResult({ parsedJson, resultUrls, resultContents }
           metricKey="swing_speed"
           metricObj={getMetricObj('swing_speed') || getMetricObj('swing')}
           resultUrls={resultUrls}
+          fpsInfo={fpsInfo}
           leftNode={<SwingPanel parsedJson={parsedJson} impactFrame={impact_frame} />}
         />
 
@@ -97,6 +114,7 @@ export default function ReceiveResult({ parsedJson, resultUrls, resultContents }
           metricKey="head"
           metricObj={getMetricObj('head') || getMetricObj('head_speed')}
           resultUrls={resultUrls}
+          fpsInfo={fpsInfo}
           leftNode={<HeadPanel parsedJson={parsedJson} />}
         />
 
@@ -105,6 +123,7 @@ export default function ReceiveResult({ parsedJson, resultUrls, resultContents }
           metricKey="shoulder_sway"
           metricObj={getMetricObj('shoulder_sway')}
           resultUrls={resultUrls}
+          fpsInfo={fpsInfo}
           leftNode={<div>
             <div className="text-[26px] font-bold pb-[10px]">Shoulder</div>
             <div className="text-sm text-gray-600 dark:text-slate-400">어깨 관련 오버레이</div>

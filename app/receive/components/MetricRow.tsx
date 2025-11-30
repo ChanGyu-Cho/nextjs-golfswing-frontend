@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 type Props = {
   metricKey: string;
   metricObj: any;
   leftNode: React.ReactNode | ((currentFrame: number | null) => React.ReactNode);
   resultUrls: string[] | null;
+  fpsInfo?: { original_fps: number; output_fps: number };
 };
 
 function findOverlayForMetric(metricObj: any, metricKey: string, resultUrls: string[] | null) {
@@ -104,17 +105,55 @@ function findOverlayForMetric(metricObj: any, metricKey: string, resultUrls: str
   return null;
 }
 
-export default function MetricRow({ metricKey, metricObj, leftNode, resultUrls }: Props) {
+export default function MetricRow({ metricKey, metricObj, leftNode, resultUrls, fpsInfo }: Props) {
   const overlay = findOverlayForMetric(metricObj, metricKey, resultUrls);
   const [currentFrame, setCurrentFrame] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
+  // ✅ fps_info 우선순위: metricObj 내부 → Props로 받은 값 → 기본값
+  const fpsInfoFromMetric = metricObj?.fps_info;
+  const activeFpsInfo = fpsInfoFromMetric || fpsInfo;
+  
+  const outputFps = activeFpsInfo?.output_fps ?? 60; // 백엔드에서 샘플링된 fps (보통 60)
+  const originalFps = activeFpsInfo?.original_fps ?? outputFps; // 원본 fps (90, 60, 30 등)
+
+  // 디버그: fpsInfo 로그
+  React.useEffect(() => {
+    console.log(`🎬 MetricRow (${metricKey}):`, {
+      fpsInfoFromMetric,
+      fpsInfoFromProps: fpsInfo,
+      activeFpsInfo,
+      outputFps,
+      originalFps,
+      source: fpsInfoFromMetric ? 'metricObj' : (fpsInfo ? 'props' : 'default'),
+    });
+  }, [fpsInfoFromMetric, fpsInfo, metricKey]);
+
+  // ✅ 프레임 계산: 비디오는 output_fps(60fps) 기준, 그래프는 original_fps 기준
   const handleTimeUpdate = () => {
     if (videoRef.current) {
-      // Assuming 30 fps for frame calculation
-      const fps = 30;
-      const frame = Math.floor(videoRef.current.currentTime * fps);
-      setCurrentFrame(frame);
+      const video = videoRef.current;
+      const currentTime = video.currentTime;
+      
+      // 1. 비디오 기준 프레임 (60fps)
+      const videoFrame = Math.floor(currentTime * outputFps);
+      
+      // 2. 원본 데이터 기준 프레임으로 변환
+      // 예: 비디오 60fps에서 frame=30 → 원본 90fps 기준 frame=45
+      const originalFrame = Math.floor((videoFrame / outputFps) * originalFps);
+      
+      setCurrentFrame(originalFrame);
+      
+      // 디버그: 30프레임마다 로그
+      if (videoFrame % 30 === 0) {
+        console.log(`📊 프레임 동기화 (${metricKey}):`, {
+          videoTime: currentTime.toFixed(3),
+          videoFrame,
+          originalFrame,
+          outputFps,
+          originalFps,
+        });
+      }
     }
   };
 
@@ -129,16 +168,23 @@ export default function MetricRow({ metricKey, metricObj, leftNode, resultUrls }
       {/* Right video panel - centered and right-aligned with border box */}
       <div className="w-[60%] border border-slate-200 dark:border-slate-600 rounded-lg p-[20px] flex items-center justify-center">
         {overlay ? (
-          <video 
-            ref={videoRef}
-            controls 
-            muted 
-            playsInline 
-            className="w-full h-auto rounded"
-            onTimeUpdate={handleTimeUpdate}
-          >
-            <source src={overlay} type="video/mp4" />
-          </video>
+          <div>
+            <video 
+              ref={videoRef}
+              controls 
+              muted 
+              playsInline 
+              className="w-full h-auto rounded"
+              onTimeUpdate={handleTimeUpdate}
+            >
+              <source src={overlay} type="video/mp4" />
+            </video>
+            {/* ✅ fps 정보 표시 */}
+            <div className="text-xs text-gray-500 dark:text-slate-400 mt-2 text-center space-y-1">
+              <div>Output FPS: {outputFps} | Original FPS: {originalFps}</div>
+              <div>Current Frame (original): {currentFrame ?? '-'}</div>
+            </div>
+          </div>
         ) : (
           <div className="text-sm text-gray-500 dark:text-slate-400 text-center py-[40px]">
             Overlay 없음
