@@ -14,11 +14,26 @@ function getXfactor(parsedJson: any) {
 }
 
 function getCOMSummary(parsedJson: any) {
-  const m = findMetric(parsedJson, 'com_shift') || findMetric(parsedJson, 'com_speed');
-  const cs = m || {};
-  const bs = cs?.summary?.back_shift_pct ?? cs?.summary?.bs_percent ?? cs?.bs_percent ?? cs?.BS ?? cs?.bs ?? null;
-  const ds = cs?.summary?.down_shift_pct ?? cs?.summary?.ds_percent ?? cs?.ds_percent ?? cs?.DS ?? cs?.ds ?? null;
-  return { bs, ds };
+  const comMetric = parsedJson?.metrics?.com_speed || parsedJson?.com_speed || null;
+  const comShiftMetric = comMetric?.metrics?.com_shift || comMetric?.com_shift || null;
+  
+  // Extract Back Shift (백스윙 체중 이동)
+  const back_shift = 
+    comShiftMetric?.summary?.back_shift_pct ??
+    comShiftMetric?.summary?.back_shift ??
+    comShiftMetric?.summary?.BS ??
+    comShiftMetric?.summary?.bs ??
+    null;
+
+  // Extract Down Shift (다운스윙 체중 이동)
+  const down_shift = 
+    comShiftMetric?.summary?.down_shift_pct ??
+    comShiftMetric?.summary?.down_shift ??
+    comShiftMetric?.summary?.DS ??
+    comShiftMetric?.summary?.ds ??
+    null;
+
+  return { back_shift, down_shift };
 }
 
 function getSwing(parsedJson: any) {
@@ -52,7 +67,7 @@ export default function SummaryBar({ parsedJson }: Props) {
         </div>
         <div className="w-1/5 text-center">
           <div className="text-sm text-gray-500 dark:text-slate-400">COM</div>
-          <div className="text-2xl font-bold text-black dark:text-white">{com.bs !== undefined && com.ds !== undefined ? `BS:${com.bs}%\nDS:${com.ds}%` : 'N/A'}</div>
+          <div className="text-2xl font-bold text-black dark:text-white">{com.back_shift !== null && com.down_shift !== null ? `BS:${Number(com.back_shift).toFixed(1)}%\nDS:${Number(com.down_shift).toFixed(1)}%` : 'N/A'}</div>
         </div>
         <div className="w-1/5 text-center">
           <div className="text-sm text-gray-500 dark:text-slate-400">SWING</div>

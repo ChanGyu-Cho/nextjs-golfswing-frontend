@@ -16,6 +16,43 @@ function CallbackComponent() {
   const [logMessage, setLogMessage] = useState("인증 처리 중입니다...");
   const router = useRouter();
 
+  // 클립보드에 텍스트를 복사하는 헬퍼 함수
+  const copyToClipboard = async (text: string) => {
+    try {
+      // 최신 Clipboard API 시도
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        console.log("[callback] ✓ Token copied to clipboard via Clipboard API");
+        return true;
+      }
+    } catch (e) {
+      console.log(`[callback] Clipboard API failed: ${e}`);
+    }
+    
+    // Fallback: 구형 방법 (일부 브라우저)
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const success = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (success) {
+        console.log("[callback] ✓ Token copied to clipboard via execCommand");
+        return true;
+      }
+    } catch (e) {
+      console.log(`[callback] execCommand failed: ${e}`);
+    }
+    
+    console.log("[callback] ❌ Failed to copy token to clipboard");
+    return false;
+  };
+
   useEffect(() => {
     const authCode = searchParams.get("code");
     const error = searchParams.get("error");
@@ -49,30 +86,72 @@ function CallbackComponent() {
         });
 
         if (response.ok) {
+          // ✅ 새로 추가: 응답에서 access_token 추출
+          let access_token = null;
+          try {
+            const data = await response.json();
+            access_token = data.access_token;
+            console.log(`[callback] Received access_token from response: ${access_token ? access_token.substring(0, 20) + "..." : "null"}`);
+          } catch (e) {
+            console.log(`[callback] Could not parse response as JSON: ${e}`);
+          }
+
+          // ✅ 새로 추가: 토큰을 클립보드에 복사 (Desktop이 감지하도록)
+          if (access_token) {
+            const copied = await copyToClipboard(access_token);
+            if (copied) {
+              setLogMessage(`🎉 인증에 성공했습니다!
+✓ 토큰이 클립보드에 복사되었습니다.
+(Desktop 앱이 자동으로 감지합니다)`);
+            } else {
+              setLogMessage(`⚠️ 인증 성공했으나 토큰 복사 실패.
+수동 붙여넣기가 필요할 수 있습니다.`);
+            }
+          } else {
+            // 토큰이 응답에 없는 경우
+            setLogMessage(`✅ 인증 성공 (토큰은 HttpOnly 쿠키로만 저장됨)
+이전 작업으로 이동합니다...`);
+          }
+
           // 1. 성공! 브라우저가 Set-Cookie 헤더를 통해 쿠키를 이미 저장했습니다. (API Route에서 전달받음)
           // 우선 대상(redirect) URL 결정: callback URL에 job_id 또는 토큰 파라가 있으면 원래 로딩으로 복귀
           const jobId = searchParams.get('job_id');
-          const accessToken = searchParams.get('access_token');
+          const accessTokenParam = searchParams.get('access_token');
           const oneTimeToken = searchParams.get('one_time_token');
 
           let target = '/main';
           if (jobId) {
             target = `/loading?job_id=${encodeURIComponent(jobId)}`;
-            if (accessToken) target += `&access_token=${encodeURIComponent(accessToken)}`;
+            if (accessTokenParam) target += `&access_token=${encodeURIComponent(accessTokenParam)}`;
             else if (oneTimeToken) target += `&one_time_token=${encodeURIComponent(oneTimeToken)}`;
           }
 
-          setLogMessage("🎉 인증에 성공했습니다. 이전 작업으로 돌아갑니다...");
-          setTimeout(() => router.replace(target), 500);
+          // 토큰 복사 후 또는 실패했을 때 약간의 지연 후 리다이렉트
+          setTimeout(() => router.replace(target), 1500);
         } else {
           // 3. 토큰 교환 실패
-          const data = await response.json();
-          setLogMessage(`❌ 인증 실패: ${data.detail?.message || data.message || "알 수 없는 오류"}`);
+          const contentType = response.headers.get('content-type');
+          let errorMessage = "알 수 없는 오류";
+          
+          try {
+            if (contentType && contentType.includes('application/json')) {
+              const data = await response.json();
+              errorMessage = data.detail?.message || data.message || data.detail || JSON.stringify(data);
+            } else {
+              errorMessage = await response.text();
+            }
+          } catch (e) {
+            errorMessage = `HTTP ${response.status}: 응답 파싱 실패`;
+          }
+          
+          setLogMessage(`❌ 토큰 교환 실패: ${errorMessage}`);
+          console.log(`[callback] Token exchange failed: ${response.status} ${errorMessage}`);
         }
       } catch (e) {
         // 네트워크 오류 또는 서버 연결 실패 (주로 Next.js API Route 접근 실패 시 발생)
         setLogMessage(`❌ 통신 오류: Next.js API Route에 연결할 수 없습니다. 
 오류 상세: ${e instanceof Error ? e.message : String(e)}`);
+        console.log(`[callback] Network error: ${e}`);
       }
     };
 

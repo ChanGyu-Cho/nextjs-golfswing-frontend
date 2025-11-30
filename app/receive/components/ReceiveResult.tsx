@@ -19,7 +19,26 @@ type Props = {
 export default function ReceiveResult({ parsedJson, resultUrls, resultContents }: Props) {
   if (!parsedJson) return null;
 
-  const impact_frame = parsedJson?.impact_frame ?? parsedJson?.analysis?.impact_frame ?? null;
+  // Search for impact_frame in all possible metric locations
+  const impact_frame = 
+    parsedJson?.impact_frame ??
+    parsedJson?.analysis?.impact_frame ??
+    parsedJson?.metrics?.impact_frame ??
+    parsedJson?.summary?.impact_frame ??
+    parsedJson?.xfactor?.summary?.impact_frame ??
+    parsedJson?.metrics?.xfactor?.summary?.impact_frame ??
+    parsedJson?.metrics?.head_speed?.summary?.impact_frame ??
+    parsedJson?.head_speed?.summary?.impact_frame ??
+    parsedJson?.metrics?.com_speed?.metrics?.com_speed?.summary?.impact_frame ??
+    parsedJson?.metrics?.swing_speed?.metrics?.swing_speed?.summary?.impact_frame ??
+    null;
+
+  console.log("📍 ReceiveResult Debug:", {
+    impact_frame,
+    hasXfactor: Boolean(parsedJson?.xfactor || findMetric(parsedJson, "xfactor")),
+    xfactorStructure: parsedJson?.xfactor ? Object.keys(parsedJson.xfactor) : "not found",
+    jsonKeys: Object.keys(parsedJson).slice(0, 10),
+  });
 
   // Helper to get a specific metric object by canonical keys
   const getMetricObj = (key: string) => {
@@ -35,7 +54,8 @@ export default function ReceiveResult({ parsedJson, resultUrls, resultContents }
       xMetricObj?.deg !== undefined ||
       xMetricObj?.xfactor_deg !== undefined ||
       (Array.isArray(xMetricObj?.series) && xMetricObj.series.length > 0) ||
-      (xMetricObj?.metrics && Object.keys(xMetricObj.metrics).length > 0)
+      (xMetricObj?.metrics && Object.keys(xMetricObj.metrics).length > 0) ||
+      (xMetricObj?.metrics_data && Object.keys(xMetricObj.metrics_data).length > 0)
     )
   );
 
@@ -46,50 +66,50 @@ export default function ReceiveResult({ parsedJson, resultUrls, resultContents }
         <ModelSummary parsedJson={parsedJson} />
         <SummaryBar parsedJson={parsedJson} />
 
-      {/* XFactor row (only for 3D) */}
-      {hasXfactor && (
+        {/* XFactor row (only for 3D) */}
+        {hasXfactor && (
+          <MetricRow
+            metricKey="xfactor"
+            metricObj={xMetricObj}
+            resultUrls={resultUrls}
+            leftNode={(currentFrame) => <XfactorPanel parsedJson={parsedJson} impactFrame={impact_frame} currentFrame={currentFrame} />}
+          />
+        )}
+
+        {/* COM row */}
         <MetricRow
-          metricKey="xfactor"
-          metricObj={xMetricObj}
+          metricKey="com_speed"
+          metricObj={getMetricObj('com_speed') || getMetricObj('com_shift')}
           resultUrls={resultUrls}
-          leftNode={<XfactorPanel parsedJson={parsedJson} impactFrame={impact_frame} />}
+          leftNode={<COMPanel parsedJson={parsedJson} impactFrame={impact_frame} />}
         />
-      )}
 
-      {/* COM row */}
-      <MetricRow
-        metricKey="com_speed"
-        metricObj={getMetricObj('com_speed') || getMetricObj('com_shift')}
-        resultUrls={resultUrls}
-        leftNode={<COMPanel parsedJson={parsedJson} impactFrame={impact_frame} />}
-      />
+        {/* Swing speed row */}
+        <MetricRow
+          metricKey="swing_speed"
+          metricObj={getMetricObj('swing_speed') || getMetricObj('swing')}
+          resultUrls={resultUrls}
+          leftNode={<SwingPanel parsedJson={parsedJson} impactFrame={impact_frame} />}
+        />
 
-      {/* Swing speed row */}
-      <MetricRow
-        metricKey="swing_speed"
-        metricObj={getMetricObj('swing_speed') || getMetricObj('swing')}
-        resultUrls={resultUrls}
-        leftNode={<SwingPanel parsedJson={parsedJson} impactFrame={impact_frame} />}
-      />
+        {/* Head row */}
+        <MetricRow
+          metricKey="head"
+          metricObj={getMetricObj('head') || getMetricObj('head_speed')}
+          resultUrls={resultUrls}
+          leftNode={<HeadPanel parsedJson={parsedJson} />}
+        />
 
-      {/* Head row */}
-      <MetricRow
-        metricKey="head"
-        metricObj={getMetricObj('head') || getMetricObj('head_speed')}
-        resultUrls={resultUrls}
-        leftNode={<HeadPanel parsedJson={parsedJson} />}
-      />
-
-      {/* Shoulder / other overlays: show if available as its own row */}
-      <MetricRow
-        metricKey="shoulder_sway"
-        metricObj={getMetricObj('shoulder_sway')}
-        resultUrls={resultUrls}
-        leftNode={<div>
-          <div className="text-[26px] font-bold pb-[10px]">Shoulder</div>
-          <div className="text-sm text-gray-600 dark:text-slate-400">어깨 관련 오버레이</div>
-        </div>}
-      />
+        {/* Shoulder / other overlays: show if available as its own row */}
+        <MetricRow
+          metricKey="shoulder_sway"
+          metricObj={getMetricObj('shoulder_sway')}
+          resultUrls={resultUrls}
+          leftNode={<div>
+            <div className="text-[26px] font-bold pb-[10px]">Shoulder</div>
+            <div className="text-sm text-gray-600 dark:text-slate-400">어깨 관련 오버레이</div>
+          </div>}
+        />
 
         {/* Summary metrics at the bottom */}
         <div className="max-w-[1500px]"><SummaryMetrics parsedJson={parsedJson} /></div>

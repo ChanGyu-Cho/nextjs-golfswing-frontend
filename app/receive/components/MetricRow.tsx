@@ -1,11 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef } from "react";
 
 type Props = {
   metricKey: string;
   metricObj: any;
-  leftNode: React.ReactNode;
+  leftNode: React.ReactNode | ((currentFrame: number | null) => React.ReactNode);
   resultUrls: string[] | null;
 };
 
@@ -106,17 +106,43 @@ function findOverlayForMetric(metricObj: any, metricKey: string, resultUrls: str
 
 export default function MetricRow({ metricKey, metricObj, leftNode, resultUrls }: Props) {
   const overlay = findOverlayForMetric(metricObj, metricKey, resultUrls);
+  const [currentFrame, setCurrentFrame] = useState<number | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      // Assuming 30 fps for frame calculation
+      const fps = 30;
+      const frame = Math.floor(videoRef.current.currentTime * fps);
+      setCurrentFrame(frame);
+    }
+  };
+
+  // Determine what to render as leftNode
+  const leftContent = typeof leftNode === "function" ? leftNode(currentFrame) : leftNode;
 
   return (
-    <div className="flex flex-row gap-[40px] bg-white dark:bg-slate-800 rounded-[14px] max-w-[1500px] py-[40px] px-[56px]">
-      <div className="w-[40%]">{leftNode}</div>
-      <div className="rounded-[14px] w-[60%] overflow-hidden">
+    <div className="flex flex-row gap-[40px] bg-white dark:bg-slate-800 rounded-lg max-w-[1500px] py-[40px] px-[56px] items-center">
+      {/* Left metrics panel */}
+      <div className="w-[40%]">{leftContent}</div>
+
+      {/* Right video panel - centered and right-aligned with border box */}
+      <div className="w-[60%] border border-slate-200 dark:border-slate-600 rounded-lg p-[20px] flex items-center justify-center">
         {overlay ? (
-          <video controls muted playsInline className="w-full h-[500px]">
+          <video 
+            ref={videoRef}
+            controls 
+            muted 
+            playsInline 
+            className="w-full h-auto rounded"
+            onTimeUpdate={handleTimeUpdate}
+          >
             <source src={overlay} type="video/mp4" />
           </video>
         ) : (
-          <div style={{ padding: 24 }} className="text-sm text-gray-500 dark:text-slate-400">Overlay 없음</div>
+          <div className="text-sm text-gray-500 dark:text-slate-400 text-center py-[40px]">
+            Overlay 없음
+          </div>
         )}
       </div>
     </div>
