@@ -8,7 +8,7 @@ function MetricsComponent() {
         Swing Metrics Analysis
       </div>
       <div className="flex flex-col gap-[50px]">
-        <div className="flex flex-row gap-[40px] border border-[#e6e6e6] bg-white rounded-[14px] max-w-[1500px] py-[40px] px-[56px] ">
+        <div className="flex flex-row gap-[40px] bg-white rounded-[14px] max-w-[1500px] py-[40px] px-[56px] ">
           <div className="w-[40%]">
             <div className="text-[26px] font-bold pb-[10px]">Xfactor</div>
             <div className="text-[18px]  pb-[30px]">
@@ -27,13 +27,13 @@ function MetricsComponent() {
               <XfactorGraph />
             </div>
           </div>
-          <div className="border border-[#1f8552] rounded-[14px] w-[60%] overflow-hidden">
+          <div className="rounded-[14px] w-[60%] overflow-hidden">
             <video controls muted playsInline className="w-full ">
               <source src="/video/xfactor.mp4" type="video/mp4" />
             </video>
           </div>
         </div>
-        <div className="flex flex-row gap-[40px] border border-[#e6e6e6] bg-white rounded-[14px] max-w-[1500px] py-[40px] px-[56px] ">
+        <div className="flex flex-row gap-[40px] bg-white rounded-[14px] max-w-[1500px] py-[40px] px-[56px] ">
           <div className="w-[40%]">
             <div className="text-[26px] font-bold pb-[10px]">COM</div>
             <div className="text-[18px]  pb-[20px]">
@@ -49,13 +49,13 @@ function MetricsComponent() {
               더 돌려 상체 회전각을 늘려보세요.
             </div>
           </div>
-          <div className="border border-[#1f8552] rounded-[14px] w-[60%] overflow-hidden">
+          <div className="rounded-[14px] w-[60%] overflow-hidden">
             <video controls muted playsInline className="w-full h-[500px]">
               <source src="/video/com_speed.mp4" type="video/mp4" />
             </video>
           </div>
         </div>
-        <div className="flex flex-row gap-[40px] border border-[#e6e6e6] bg-white rounded-[14px] max-w-[1500px] py-[40px] px-[56px] ">
+        <div className="flex flex-row gap-[40px] bg-white rounded-[14px] max-w-[1500px] py-[40px] px-[56px] ">
           <div className="w-[40%]">
             <div className="text-[26px] font-bold pb-[10px]">Swing</div>
             <div className="text-[18px]  pb-[20px]">
@@ -71,13 +71,13 @@ function MetricsComponent() {
               돕고 있습니다.”
             </div>
           </div>
-          <div className="border border-[#1f8552] rounded-[14px] w-[60%] overflow-hidden">
+          <div className="rounded-[14px] w-[60%] overflow-hidden">
             <video controls muted playsInline className="w-full h-[500px]">
               <source src="/video/head_speed.mp4" type="video/mp4" />
             </video>
           </div>
         </div>
-        <div className="flex flex-row gap-[40px] border border-[#e6e6e6] bg-white rounded-[14px] max-w-[1500px] py-[40px] px-[56px] ">
+        <div className="flex flex-row gap-[40px] bg-white rounded-[14px] max-w-[1500px] py-[40px] px-[56px] ">
           <div className="w-[40%]">
             <div className="text-[26px] font-bold pb-[10px]">Head</div>
             <div className="text-[18px]  pb-[20px]">
@@ -93,7 +93,7 @@ function MetricsComponent() {
               더 돌려 상체 회전각을 늘려보세요.
             </div>
           </div>
-          <div className="border border-[#1f8552] rounded-[14px] w-[60%] overflow-hidden">
+          <div className="rounded-[14px] w-[60%] overflow-hidden">
             <video controls muted playsInline className="w-full h-[500px]">
               <source src="/video/swing.mp4" type="video/mp4" />
             </video>

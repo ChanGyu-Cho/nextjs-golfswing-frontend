@@ -2,11 +2,13 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
+import ReceiveResult from "./components/ReceiveResult";
 
 export default function ClientReceive() {
   const searchParams = useSearchParams();
   const jobId = searchParams?.get("job_id") || undefined;
   const accessTokenParam = searchParams?.get("access_token") || undefined;
+  const debugResultUrl = searchParams?.get("debug_result_url") || undefined;
 
   const [status, setStatus] = useState<string>(jobId ? `대기 중: Job ${jobId}` : "Job ID 없음");
   const [resultUrls, setResultUrls] = useState<string[] | null>(null);
@@ -22,6 +24,17 @@ export default function ClientReceive() {
   const skipPollingRef = useRef(false);
 
   // Polling: 주기적으로 /api/result/status?job_id=... 호출
+  useEffect(() => {
+    // Dev helper: if debug_result_url is provided, skip polling and fetch that URL as result
+    if (debugResultUrl) {
+      try {
+        setResultUrls([debugResultUrl]);
+        // ensure parsed JSON will be fetched by existing effect
+      } catch (_) {}
+    }
+  }, [debugResultUrl]);
+
+  
   useEffect(() => {
     if (!jobId) return;
     if (skipPollingRef.current) return; // WS already handling updates
@@ -453,124 +466,13 @@ export default function ClientReceive() {
   }, [resultContents]);
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Receive (결과 수신)</h1>
-      <div style={{ whiteSpace: "pre-wrap", background: "#f6f8fa", padding: 12, borderRadius: 6 }}>
-        {status}
-      </div>
-
-      {/* presigned URL list removed to avoid exposing raw URLs in the UI */}
-
-      {parsedResultJson && (
-        <div style={{ marginTop: 18 }}>
-          {/* Model Result box (show top-level prediction from stgcn_inference) */}
-          <div style={{ border: '1px solid #e6e6e6', background: '#fff', padding: 24, borderRadius: 12, maxWidth: 1100, marginBottom: 18 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-              <div style={{ fontSize: 30, fontWeight: 700, color: '#1f8552' }}>AI Model Swing Evaluation</div>
-              <div style={{ fontSize: 20, color: '#333' }}>
-                {parsedResultJson.stgcn_inference && parsedResultJson.stgcn_inference.prediction ? (
-                  <>
-                    <div style={{ fontSize: 22, fontWeight: 800 }}>{String(parsedResultJson.stgcn_inference.prediction).toUpperCase()}</div>
-                    {parsedResultJson.stgcn_inference.confidence !== undefined && (
-                      <div style={{ marginTop: 6, color: '#666' }}>Confidence: {Number(parsedResultJson.stgcn_inference.confidence).toFixed(3)}</div>
-                    )}
-                  </>
-                ) : (
-                  <div style={{ color: '#666' }}>No model prediction found in result JSON.</div>
-                )}
-              </div>
-            </div>
+    <div className="flex flex-col justify-center items-center bg-[#f6fcf5] py-[50px]">
+      <div className="w-full max-w-[1500px] px-4">
+        {parsedResultJson && (
+          <div>
+            <ReceiveResult parsedJson={parsedResultJson} resultUrls={resultUrls} resultContents={resultContents} />
           </div>
-          <h2>Results</h2>
-          {/* Render metrics in a similar layout to MetricsComponent but using JSON values and presigned URLs */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
-            {Object.keys(parsedResultJson.metrics || {}).map((metricKey) => {
-              const metric = parsedResultJson.metrics[metricKey];
-              const title = metricKey.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-
-              // summary extraction handles a few nesting shapes
-              const summary = extractSummary(metricKey, metric);
-
-              // overlay path: try explicit fields, then nested, then fallback by filename matching
-              let overlayPath: string | undefined = undefined;
-              if (metric) {
-                if (metric.overlay_mp4) overlayPath = metric.overlay_mp4;
-                else if (metric.overlay) overlayPath = metric.overlay;
-                else if (metric.metrics && typeof metric.metrics === 'object') {
-                  // search inner metrics for overlay fields
-                  for (const ik of Object.keys(metric.metrics)) {
-                    const inner = metric.metrics[ik];
-                    if (inner) {
-                      if (inner.overlay_mp4) { overlayPath = inner.overlay_mp4; break; }
-                      if (inner.overlay) { overlayPath = inner.overlay; break; }
-                    }
-                  }
-                }
-              }
-
-              // prefer exact resolve by keyPath, otherwise try filename-based heuristic
-              let presignedVideo = overlayPath ? resolvePresignedForKey(overlayPath) : null;
-              if (!presignedVideo) presignedVideo = findVideoForMetricKey(metricKey);
-              // if still not found, try any presigned mp4 in the result_urls
-              if (!presignedVideo) presignedVideo = findAnyPresignedMp4();
-              // final fallback: use a local demo video from /public/video
-              const fallbackLocal = localFallbackForMetric(metricKey);
-              const finalVideoSrc = presignedVideo || fallbackLocal;
-
-              return (
-                <div key={metricKey} style={{ display: 'flex', gap: 40, border: '1px solid #e6e6e6', background: '#fff', padding: 24, borderRadius: 12 }}>
-                  <div style={{ width: '40%' }}>
-                    <div style={{ fontSize: 22, fontWeight: 700 }}>{title}</div>
-                    {summary ? (
-                      <div style={{ marginTop: 12 }}>
-                        {Object.keys(summary).map((k) => (
-                          <div key={k} style={{ marginBottom: 6 }}><strong>{k}:</strong> {fmt(summary[k])}</div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{ marginTop: 12, color: '#666' }}>No summary available for this metric.</div>
-                    )}
-                  </div>
-                  <div style={{ width: '60%', border: '1px solid #1f8552', borderRadius: 8, overflow: 'hidden' }}>
-                    <video
-                      ref={(el) => { if (el) videoRefs.current[finalVideoSrc] = el; else delete videoRefs.current[finalVideoSrc]; }}
-                      controls
-                      crossOrigin="anonymous"
-                      muted
-                      playsInline
-                      style={{ width: '100%', height: '100%' }}
-                    >
-                      <source src={finalVideoSrc} type="video/mp4" />
-                    </video>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ marginTop: 18, background: '#f3f4f6', padding: 12, borderRadius: 8 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Parsed JSON (debug)</div>
-            <pre style={{ maxHeight: 240, overflow: 'auto', fontSize: 12 }}>{JSON.stringify(parsedResultJson, null, 2)}</pre>
-          </div>
-          <div style={{ marginTop: 12, background: '#fff7ed', padding: 12, borderRadius: 8, border: '1px solid #fde68a' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Debug Info</div>
-            <div style={{ fontSize: 12, color: '#444' }}>
-              <div><strong>Last poll response:</strong></div>
-              <pre style={{ maxHeight: 180, overflow: 'auto' }}>{JSON.stringify(lastStatusResponse, null, 2)}</pre>
-              <div><strong>Last poll error:</strong> {lastStatusFetchError || '-'}</div>
-              <div style={{ marginTop: 8 }}><strong>Last WS message:</strong></div>
-              <pre style={{ maxHeight: 180, overflow: 'auto' }}>{JSON.stringify(wsLastMessage, null, 2)}</pre>
-              <div style={{ marginTop: 8 }}><strong>Result URLs:</strong></div>
-              <pre style={{ maxHeight: 120, overflow: 'auto' }}>{JSON.stringify(resultUrls, null, 2)}</pre>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div style={{ marginTop: 18 }}>
-        <small>
-          Notes: This page polls <code>/api/result/status</code> for job status. Polling is used instead of WebSocket
-          to improve compatibility with CDNs and reverse proxies.
-        </small>
+        )}
       </div>
     </div>
   );
