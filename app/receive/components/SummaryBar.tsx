@@ -47,7 +47,6 @@ function getHead(parsedJson: any) {
   const m = findMetric(parsedJson, 'head') || findMetric(parsedJson, 'head_speed');
   return m?.summary?.grade || m?.grade || 'N/A';
 }
-
 export default function SummaryBar({ parsedJson }: Props) {
   const x = getXfactor(parsedJson);
   const com = getCOMSummary(parsedJson);
@@ -74,8 +73,8 @@ export default function SummaryBar({ parsedJson }: Props) {
           <div className="text-2xl font-bold text-black dark:text-white">{swing ? `${Number(swing).toFixed(1)} km/h` : 'N/A'}</div>
         </div>
         <div className="w-1/5 text-center">
-          <div className="text-sm text-gray-500">HEAD</div>
-          <div className="text-2xl font-bold">{String(head).toUpperCase()}</div>
+          <div className="text-sm text-gray-500 dark:text-slate-400">HEAD</div>
+          <div className="text-2xl font-bold text-black dark:text-white">{String(head).toUpperCase()}</div>
         </div>
       </div>
     </div>

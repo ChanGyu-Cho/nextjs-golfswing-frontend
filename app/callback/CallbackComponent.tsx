@@ -88,10 +88,22 @@ function CallbackComponent() {
         if (response.ok) {
           // ✅ 새로 추가: 응답에서 access_token 추출
           let access_token = null;
+          let id_token = null;
           try {
             const data = await response.json();
             access_token = data.access_token;
+            id_token = data.id_token;
             console.log(`[callback] Received access_token from response: ${access_token ? access_token.substring(0, 20) + "..." : "null"}`);
+            
+            // ✅ 토큰을 localStorage에 저장 (중요!)
+            if (access_token) {
+              localStorage.setItem("access_token", access_token);
+              console.log("[callback] ✓ access_token saved to localStorage");
+            }
+            if (id_token) {
+              localStorage.setItem("id_token", id_token);
+              console.log("[callback] ✓ id_token saved to localStorage");
+            }
           } catch (e) {
             console.log(`[callback] Could not parse response as JSON: ${e}`);
           }

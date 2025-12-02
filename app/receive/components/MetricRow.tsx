@@ -117,6 +117,14 @@ export default function MetricRow({ metricKey, metricObj, leftNode, resultUrls, 
   const outputFps = activeFpsInfo?.output_fps ?? 60; // 백엔드에서 샘플링된 fps (보통 60)
   const originalFps = activeFpsInfo?.original_fps ?? outputFps; // 원본 fps (90, 60, 30 등)
 
+  // ✅ 비디오 playbackRate를 75%로 설정
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.75;
+      console.log(`🎬 MetricRow (${metricKey}): playbackRate set to 0.75 (75%)`);
+    }
+  }, []);
+
   // 디버그: fpsInfo 로그
   React.useEffect(() => {
     console.log(`🎬 MetricRow (${metricKey}):`, {

@@ -466,7 +466,7 @@ export default function ClientReceive() {
   }, [resultContents]);
 
   return (
-    <div className="flex flex-col justify-center items-center bg-[#f6fcf5] py-[50px]">
+    <div className="flex flex-col justify-center items-center bg-[#f6fcf5] dark:bg-slate-950 py-[50px]">
       <div className="w-full max-w-[1500px] px-4">
         {parsedResultJson && (
           <div>
