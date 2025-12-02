@@ -213,7 +213,7 @@ export default function COMPanel({ parsedJson, impactFrame = null, currentFrame 
           </div>
         </div>
         <div className="text-xs text-gray-500 dark:text-slate-400 mb-1">
-          백스윍 체중 이동 · 적정: -15% ~ -25%
+          백스윙 체중 이동 · 적정: -15% ~ -25%
         </div>
         <div className="text-xs text-gray-700 dark:text-slate-300">
           {backFeedback.feedback}
@@ -236,7 +236,7 @@ export default function COMPanel({ parsedJson, impactFrame = null, currentFrame 
           </div>
         </div>
         <div className="text-xs text-gray-500 dark:text-slate-400 mb-1">
-          다운스윍 체중 이동 · 적정: 20% ~ 30%
+          다운스윙 체중 이동 · 적정: 20% ~ 30%
         </div>
         <div className="text-xs text-gray-700 dark:text-slate-300">
           {downFeedback.feedback}

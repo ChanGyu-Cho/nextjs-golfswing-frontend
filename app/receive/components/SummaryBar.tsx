@@ -37,10 +37,18 @@ function getCOMSummary(parsedJson: any) {
 }
 
 function getSwing(parsedJson: any) {
-  const m = findMetric(parsedJson, 'swing_speed') || findMetric(parsedJson, 'club_speed');
-  const club = m?.series || parsedJson?.debug?.club_speed_series || [];
-  const max = club && club.length ? Math.max(...club.map(Number)) : null;
-  return max;
+  // club_speed_mph: SwingPanel/Abstract와 동일 경로
+  const summary =
+    parsedJson?.metrics?.swing_speed?.metrics?.swing_speed?.summary ||
+    parsedJson?.metrics?.swing_speed?.summary ||
+    parsedJson?.swing_speed?.summary ||
+    null;
+  let mph = null;
+  if (summary && typeof summary === 'object') {
+    if (typeof summary.club_speed_mph === 'number') mph = summary.club_speed_mph;
+    if (typeof summary.club_speed_mph === 'string') mph = Number(summary.club_speed_mph);
+  }
+  return mph;
 }
 
 function getHead(parsedJson: any) {
@@ -70,7 +78,7 @@ export default function SummaryBar({ parsedJson }: Props) {
         </div>
         <div className="w-1/5 text-center">
           <div className="text-sm text-gray-500 dark:text-slate-400">SWING</div>
-          <div className="text-2xl font-bold text-black dark:text-white">{swing ? `${Number(swing).toFixed(1)} km/h` : 'N/A'}</div>
+          <div className="text-2xl font-bold text-black dark:text-white">{swing !== null && !Number.isNaN(swing) ? `${Number(swing).toFixed(2)} mph` : 'N/A'}</div>
         </div>
         <div className="w-1/5 text-center">
           <div className="text-sm text-gray-500 dark:text-slate-400">HEAD</div>

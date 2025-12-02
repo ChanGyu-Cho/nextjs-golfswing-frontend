@@ -109,13 +109,29 @@ export default function MetricRow({ metricKey, metricObj, leftNode, resultUrls, 
   const overlay = findOverlayForMetric(metricObj, metricKey, resultUrls);
   const [currentFrame, setCurrentFrame] = useState<number | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
-
-  // ✅ fps_info 우선순위: metricObj 내부 → Props로 받은 값 → 기본값
-  const fpsInfoFromMetric = metricObj?.fps_info;
-  const activeFpsInfo = fpsInfoFromMetric || fpsInfo;
   
-  const outputFps = activeFpsInfo?.output_fps ?? 60; // 백엔드에서 샘플링된 fps (보통 60)
-  const originalFps = activeFpsInfo?.original_fps ?? outputFps; // 원본 fps (90, 60, 30 등)
+
+  // ✅ fps_info 우선순위: metricObj 내부 → metricObj.metrics 내부 → Props로 받은 값 → 기본값
+  const fpsInfoFromMetric = metricObj?.fps_info;
+  
+  // Check nested metrics for fps_info (e.g., swing_speed.metrics.swing_speed.fps_info)
+  let fpsInfoFromNestedMetrics = null;
+  if (!fpsInfoFromMetric && metricObj?.metrics && typeof metricObj.metrics === 'object') {
+    // Try to find fps_info in nested metrics objects
+    for (const key of Object.keys(metricObj.metrics)) {
+      const nested = metricObj.metrics[key];
+      if (nested?.fps_info) {
+        fpsInfoFromNestedMetrics = nested.fps_info;
+        break;
+      }
+    }
+  }
+  
+  const activeFpsInfo = fpsInfoFromMetric || fpsInfoFromNestedMetrics || fpsInfo;
+  
+  // 고정 FPS: JSON fps_info 사용 (없으면 60으로 고정)
+  const effectiveOutputFps = activeFpsInfo?.output_fps ?? activeFpsInfo?.original_fps ?? 60;
+  const effectiveOriginalFps = activeFpsInfo?.original_fps ?? effectiveOutputFps;
 
   // ✅ 비디오 playbackRate를 75%로 설정
   useEffect(() => {
@@ -129,37 +145,33 @@ export default function MetricRow({ metricKey, metricObj, leftNode, resultUrls, 
   React.useEffect(() => {
     console.log(`🎬 MetricRow (${metricKey}):`, {
       fpsInfoFromMetric,
+      fpsInfoFromNestedMetrics,
       fpsInfoFromProps: fpsInfo,
       activeFpsInfo,
-      outputFps,
-      originalFps,
-      source: fpsInfoFromMetric ? 'metricObj' : (fpsInfo ? 'props' : 'default'),
+      outputFps: effectiveOutputFps,
+      originalFps: effectiveOriginalFps,
+      source: fpsInfoFromMetric ? 'metricObj.fps_info' : (fpsInfoFromNestedMetrics ? 'metricObj.metrics[*].fps_info' : (fpsInfo ? 'props' : 'default')),
     });
-  }, [fpsInfoFromMetric, fpsInfo, metricKey]);
+  }, [fpsInfoFromMetric, fpsInfoFromNestedMetrics, fpsInfo, metricKey, effectiveOutputFps, effectiveOriginalFps]);
 
-  // ✅ 프레임 계산: 비디오는 output_fps(60fps) 기준, 그래프는 original_fps 기준
+  // ✅ 프레임 계산: 고정된 original_fps 기준으로 계산 (변하지 않음)
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       const video = videoRef.current;
       const currentTime = video.currentTime;
       
-      // 1. 비디오 기준 프레임 (60fps)
-      const videoFrame = Math.floor(currentTime * outputFps);
-      
-      // 2. 원본 데이터 기준 프레임으로 변환
-      // 예: 비디오 60fps에서 frame=30 → 원본 90fps 기준 frame=45
-      const originalFrame = Math.floor((videoFrame / outputFps) * originalFps);
+      // 고정된 original_fps 기준 프레임
+      const originalFrame = Math.floor(currentTime * effectiveOriginalFps);
       
       setCurrentFrame(originalFrame);
       
       // 디버그: 30프레임마다 로그
-      if (videoFrame % 30 === 0) {
+      if (originalFrame % 30 === 0) {
         console.log(`📊 프레임 동기화 (${metricKey}):`, {
           videoTime: currentTime.toFixed(3),
-          videoFrame,
           originalFrame,
-          outputFps,
-          originalFps,
+          outputFps: effectiveOutputFps,
+          originalFps: effectiveOriginalFps,
         });
       }
     }
@@ -189,7 +201,9 @@ export default function MetricRow({ metricKey, metricObj, leftNode, resultUrls, 
             </video>
             {/* ✅ fps 정보 표시 */}
             <div className="text-xs text-gray-500 dark:text-slate-400 mt-2 text-center space-y-1">
-              <div>Output FPS: {outputFps} | Original FPS: {originalFps}</div>
+              <div>
+                Output FPS: {Number(effectiveOutputFps).toFixed(2)} | Original FPS: {Number(effectiveOriginalFps).toFixed(2)}
+              </div>
               <div>Current Frame (original): {currentFrame ?? '-'}</div>
             </div>
           </div>

@@ -5,6 +5,7 @@ import XfactorPanel from "./XfactorPanel";
 import COMPanel from "./COMPanel";
 import SwingPanel from "./SwingPanel";
 import HeadPanel from "./HeadPanel";
+import ShoulderOverlay from "./ShoulderOverlay";
 import SummaryMetrics from "./SummaryMetrics";
 import MetricRow from "./MetricRow";
 import DebugResultJson from "./DebugResultJson";
@@ -19,11 +20,12 @@ type Props = {
 export default function ReceiveResult({ parsedJson, resultUrls, resultContents }: Props) {
   if (!parsedJson) return null;
 
-  // ✅ fps_info 추출
-  const fpsInfo = parsedJson?.fps_info ?? {
-    original_fps: 60,
-    output_fps: 60,
-  };
+  // ✅ fps_info 추출: 존재하는 경우에만 사용(없으면 undefined 전달)
+  const fpsInfo =
+    parsedJson?.fps_info ||
+    parsedJson?.analysis?.fps_info ||
+    parsedJson?.metadata?.fps_info ||
+    undefined;
 
   // Search for impact_frame in all possible metric locations
   const impact_frame = 
@@ -124,14 +126,13 @@ export default function ReceiveResult({ parsedJson, resultUrls, resultContents }
           metricObj={getMetricObj('shoulder_sway')}
           resultUrls={resultUrls}
           fpsInfo={fpsInfo}
-          leftNode={<div>
-            <div className="text-[26px] font-bold pb-[10px]">Shoulder</div>
-            <div className="text-sm text-gray-600 dark:text-slate-400">어깨 관련 오버레이</div>
-          </div>}
+          leftNode={<ShoulderOverlay resultUrls={resultUrls} />}
         />
 
-        {/* Summary metrics at the bottom */}
-        <div className="max-w-[1500px]"><SummaryMetrics parsedJson={parsedJson} /></div>
+        {/* Summary metrics at the bottom (SWING 영역만 별도) */}
+        <div className="max-w-[1500px]">
+          <SummaryMetrics parsedJson={parsedJson} />
+        </div>
 
         {/* Debug Component - Remove in production */}
         <DebugResultJson resultJson={parsedJson} enabled={true} />
