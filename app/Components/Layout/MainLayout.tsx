@@ -9,7 +9,7 @@ function MainLayout({
   return (
     <div className="h-screen">
       <MainHeader />
-      <div className="h-[calc(100%-102px)]">{children}</div>
+      <div className="h-[calc(100%-70px)]">{children}</div>
     </div>
   );
 }

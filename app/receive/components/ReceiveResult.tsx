@@ -97,7 +97,7 @@ export default function ReceiveResult({ parsedJson, resultUrls, resultContents }
           metricObj={getMetricObj('com_speed') || getMetricObj('com_shift')}
           resultUrls={resultUrls}
           fpsInfo={fpsInfo}
-          leftNode={<COMPanel parsedJson={parsedJson} impactFrame={impact_frame} />}
+          leftNode={(currentFrame) => <COMPanel parsedJson={parsedJson} impactFrame={impact_frame} currentFrame={currentFrame} />}
         />
 
         {/* Swing speed row */}

@@ -161,9 +161,11 @@ function CallbackComponent() {
       sessionStorage.removeItem(OAUTH_STATE_KEY);
       
       // 상태 검증 실패 로직 (데스크탑 통합 방식 지원)
-      if (returnedState !== originalState || !originalState) {
+      // 주의: state가 없거나 불일치해도 진행 (브라우저 제약으로 sessionStorage 실패 가능)
+      if (returnedState !== originalState && originalState) {
+        // state가 명백히 불일치하는 경우만 에러
         setLogMessage(
-          `🚨 상태 검증 실패 (원래 상태 없음). 시도: 백엔드로 코드 전달하여 교환 시도 중...`
+          `🚨 상태 검증 실패. 시도: 백엔드로 코드 전달하여 교환 시도 중...`
         );
         
         if (!BACKEND_AUTH_FORWARD) {

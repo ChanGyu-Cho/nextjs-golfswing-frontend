@@ -22,22 +22,22 @@ function MainHeader() {
     },
   ];
   return (
-    <div className="flex flex-row px-[50px] py-2 justify-between items-center sticky top-0 bg-white dark:bg-slate-900 border-b border-b-[#f3f4f6] dark:border-b-slate-700">
+    <div className="flex flex-row px-[50px] justify-between items-center sticky top-0 bg-white dark:bg-slate-900 border-b border-b-[#f3f4f6] dark:border-b-slate-700">
       <div className="flex flex-row gap-[100px] items-center">
         <div className="text-[28px]" onClick={() => router.push("/")}>
           <Image
-            src={"/images/logo_2.png"}
-            alt="logo"
-            width={120}
-            height={60}
-            className="block dark:hidden"
+            src={process.env.NODE_ENV === "production" ? (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches ? "/images/logo_tran.png" : "/images/logo_2.png") : "/images/logo_2.png"}
+            alt="bg_img"
+            width={150}
+            height={80}
+            className="hidden dark:block"
           />
           <Image
-            src={"/images/logo_tran.png"}
-            alt="logo"
-            width={120}
-            height={60}
-            className="hidden dark:block"
+            src={"/images/logo_2.png"}
+            alt="bg_img"
+            width={150}
+            height={80}
+            className="dark:hidden"
           />
         </div>
         {/* {pageList.map((item) => {

@@ -172,7 +172,7 @@ function getCOMFeedback(metric: number | null, type: 'back' | 'down' | 'offset' 
   return { level: 'N/A', feedback: '' };
 }
 
-export default function COMPanel({ parsedJson, impactFrame = null }: Props) {
+export default function COMPanel({ parsedJson, impactFrame = null, currentFrame = null }: Props) {
   const { back_shift, down_shift, impact_offset, rms_pre_impact } = extractCOMMetrics(parsedJson);
 
   const backFeedback = getCOMFeedback(back_shift, 'back');
@@ -298,7 +298,7 @@ export default function COMPanel({ parsedJson, impactFrame = null }: Props) {
           <GenericMetricGraph
             data={timeseriesData}
             impactFrame={impactIndex}
-            currentFrame={null}
+            currentFrame={currentFrame}
             yAxisLabel="COM 위치 (%)"
             lineColor="#3b82f6"
             lineColorDark="#60a5fa"

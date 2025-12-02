@@ -7,93 +7,93 @@ import { faCheck } from "@fortawesome/free-solid-svg-icons";
 function MainComponent() {
   const router = useRouter();
   return (
-    <div className="flex justify-center items-center h-full">
+    <div className="flex justify-center items-center h-full bg-white dark:bg-slate-900">
       <div className="flex flex-row gap-[50px]">
-        <div className="border border-[#e6e6e6] bg-white rounded-[14px] w-[500px]">
-          <div className="bg-[#f6fcf5] p-[26px] rounded-t-[14px] h-[250px] flex flex-col justify-between">
+        <div className="border border-[#e6e6e6] dark:border-slate-700 bg-white dark:bg-slate-800 rounded-[14px] w-[500px]">
+          <div className="bg-[#f6fcf5] dark:bg-slate-700 p-[26px] rounded-t-[14px] h-[250px] flex flex-col justify-between">
             <div className="flex flex-col">
-              <div className="font-bold text-[32px] pb-[30px]">2D 분석</div>
-              <div className="text-[16px] pb-[25px]">
+              <div className="font-bold text-[32px] pb-[30px] text-black dark:text-white">2D 분석</div>
+              <div className="text-[16px] pb-[25px] text-gray-700 dark:text-gray-200">
                 휴대폰으로 동작을 분석해보는 가장 빠르고 쉬운 방법
               </div>
             </div>
             <div
-              className="w-full bg-white border border-[#1f8552] text-[#1f8552] text-[16px] rounded-[4px] px-[15px] py-[10px] font-semibold text-center  cursor-pointer"
+              className="w-full bg-white dark:bg-slate-800 border border-[#1f8552] dark:border-[#2ecc71] text-[#1f8552] dark:text-[#2ecc71] text-[16px] rounded-[4px] px-[15px] py-[10px] font-semibold text-center cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => router.push("/uploader")}
             >
               시작하기
             </div>
           </div>
           <div className="px-[26px] py-[20px] flex flex-col gap-[10px]">
-            <div className="flex flex-row items-center gap-[5px]">
-              <div className="text-[#1f8552]">
+            <div className="flex flex-row items-center gap-[5px] text-gray-800 dark:text-gray-200">
+              <div className="text-[#1f8552] dark:text-[#2ecc71]">
                 <FontAwesomeIcon icon={faCheck} />
               </div>
               빅데이터 분석
             </div>
-            <div className="flex flex-row items-center gap-[5px]">
-              <div className="text-[#1f8552]">
+            <div className="flex flex-row items-center gap-[5px] text-gray-800 dark:text-gray-200">
+              <div className="text-[#1f8552] dark:text-[#2ecc71]">
                 <FontAwesomeIcon icon={faCheck} />
               </div>
               head 움직임 분석
             </div>
-            <div className="flex flex-row items-center gap-[5px]">
-              <div className="text-[#1f8552]">
+            <div className="flex flex-row items-center gap-[5px] text-gray-800 dark:text-gray-200">
+              <div className="text-[#1f8552] dark:text-[#2ecc71]">
                 <FontAwesomeIcon icon={faCheck} />
               </div>
               club 속도 분석
             </div>
-            <div className="flex flex-row items-center gap-[5px]">
-              <div className="text-[#1f8552]">
+            <div className="flex flex-row items-center gap-[5px] text-gray-800 dark:text-gray-200">
+              <div className="text-[#1f8552] dark:text-[#2ecc71]">
                 <FontAwesomeIcon icon={faCheck} />
               </div>
               com 중심 분석
             </div>
           </div>
         </div>
-        <div className="border border-[#e6e6e6] bg-white rounded-[14px] w-[500px]">
-          <div className="bg-[#f6fcf5] p-[26px] rounded-t-[14px] h-[250px] flex flex-col justify-between">
+        <div className="border border-[#e6e6e6] dark:border-slate-700 bg-white dark:bg-slate-800 rounded-[14px] w-[500px]">
+          <div className="bg-[#f6fcf5] dark:bg-slate-700 p-[26px] rounded-t-[14px] h-[250px] flex flex-col justify-between">
             <div className="flex flex-col">
-              <div className="font-bold text-[32px] pb-[30px]">3D 분석</div>
-              <div className="text-[16px] pb-[25px]">
+              <div className="font-bold text-[32px] pb-[30px] text-black dark:text-white">3D 분석</div>
+              <div className="text-[16px] pb-[25px] text-gray-700 dark:text-gray-200">
                 3D 카메라로 동작을 정확하고 세밀하게 분석해보는 가장 기술적인
                 방법
               </div>
             </div>
             <div
-              onClick={() => router.push("/result")}
-              className="w-full bg-white border border-[#1f8552] text-[#1f8552] text-[16px] rounded-[4px] px-[15px] py-[10px] font-semibold text-center"
+              onClick={() => alert("3D application 프로그램은 준비중입니다!")}
+              className="w-full bg-white dark:bg-slate-800 border border-[#1f8552] dark:border-[#2ecc71] text-[#1f8552] dark:text-[#2ecc71] text-[16px] rounded-[4px] px-[15px] py-[10px] font-semibold text-center cursor-pointer hover:opacity-80 transition-opacity"
             >
               시작하기
             </div>
           </div>
           <div className="px-[26px] py-[20px] flex flex-col gap-[10px]">
-            <div className="flex flex-row items-center gap-[5px]">
-              <div className="text-[#1f8552]">
+            <div className="flex flex-row items-center gap-[5px] text-gray-800 dark:text-gray-200">
+              <div className="text-[#1f8552] dark:text-[#2ecc71]">
                 <FontAwesomeIcon icon={faCheck} />
               </div>
               빅데이터 분석
             </div>
-            <div className="flex flex-row items-center gap-[5px]">
-              <div className="text-[#1f8552]">
+            <div className="flex flex-row items-center gap-[5px] text-gray-800 dark:text-gray-200">
+              <div className="text-[#1f8552] dark:text-[#2ecc71]">
                 <FontAwesomeIcon icon={faCheck} />
               </div>
               head 움직임 분석
             </div>
-            <div className="flex flex-row items-center gap-[5px]">
-              <div className="text-[#1f8552]">
+            <div className="flex flex-row items-center gap-[5px] text-gray-800 dark:text-gray-200">
+              <div className="text-[#1f8552] dark:text-[#2ecc71]">
                 <FontAwesomeIcon icon={faCheck} />
               </div>
               club 속도 분석
             </div>
-            <div className="flex flex-row items-center gap-[5px]">
-              <div className="text-[#1f8552]">
+            <div className="flex flex-row items-center gap-[5px] text-gray-800 dark:text-gray-200">
+              <div className="text-[#1f8552] dark:text-[#2ecc71]">
                 <FontAwesomeIcon icon={faCheck} />
               </div>
               com 중심 분석
             </div>
-            <div className="flex flex-row items-center gap-[5px]">
-              <div className="text-[#1f8552]">
+            <div className="flex flex-row items-center gap-[5px] text-gray-800 dark:text-gray-200">
+              <div className="text-[#1f8552] dark:text-[#2ecc71]">
                 <FontAwesomeIcon icon={faCheck} />
               </div>
               xfactor 분석

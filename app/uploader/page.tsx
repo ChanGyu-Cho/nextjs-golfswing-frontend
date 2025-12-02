@@ -282,46 +282,46 @@ export default function UploaderPage() {
   // ----------------------------------------------------
 
   return (
-    <div>
+    <div className="bg-white dark:bg-slate-900 min-h-screen">
       <div className="flex justify-center items-start mt-[24px]">
-        <div className="border border-[#e6e6e6] bg-white rounded-[14px] w-[720px]">
-          <div className="bg-[#f6fcf5] p-[26px] rounded-t-[14px] h-[160px] flex flex-col justify-between">
+        <div className="border border-[#e6e6e6] dark:border-slate-700 bg-white dark:bg-slate-800 rounded-[14px] w-[720px]">
+          <div className="bg-[#f6fcf5] dark:bg-slate-700 p-[26px] rounded-t-[14px] h-[160px] flex flex-col justify-between">
             <div className="flex flex-col">
-              <div className="font-bold text-[28px] pb-[10px]">2D 비디오 업로드</div>
-              <div className="text-[14px] text-[#374151]">
+              <div className="font-bold text-[28px] pb-[10px] text-black dark:text-white">2D 비디오 업로드</div>
+              <div className="text-[14px] text-[#374151] dark:text-gray-300">
                 휴대폰으로 촬영한 MP4 파일을 업로드하면 서버에서 분석을 시작합니다.
                 업로드가 완료되면 결과 페이지로 자동 이동합니다.
               </div>
             </div>
           </div>
           <div className="px-[26px] py-[20px] flex flex-col gap-[14px]">
-            <label className="text-[14px] font-semibold">파일 선택 (.mp4)</label>
+            <label className="text-[14px] font-semibold text-gray-700 dark:text-gray-300">파일 선택 (.mp4)</label>
             <input
               type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
               accept=".mp4,video/mp4"
-              className="border border-[#e5e7eb] rounded px-[10px] py-[8px]"
+              className="border border-[#e5e7eb] dark:border-slate-600 rounded px-[10px] py-[8px] bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 file:bg-[#1f8552] file:text-white file:border-0 file:px-3 file:py-1 file:rounded file:cursor-pointer dark:file:bg-[#2ecc71]"
             />
 
             <div className="flex items-center gap-[12px]">
               <button
                 onClick={handleUpload}
                 disabled={!file || inProgress}
-                className={`px-[18px] py-[10px] rounded text-white font-semibold ${file && !inProgress ? 'bg-[#1f8552]' : 'bg-[#9ca3af]'}`}
+                className={`px-[18px] py-[10px] rounded text-white font-semibold transition-colors ${file && !inProgress ? 'bg-[#1f8552] dark:bg-[#2ecc71] hover:opacity-80' : 'bg-[#9ca3af] dark:bg-slate-600'}`}
               >
                 {file ? `${file.name} 업로드` : '파일 선택 후 업로드'}
               </button>
 
               <button
                 onClick={() => { if (fileInputRef.current) fileInputRef.current.value = ''; setFile(null); setUploadStatus('업로드할 파일을 선택해주세요.'); }}
-                className="px-[14px] py-[8px] border border-[#e5e7eb] rounded text-[#374151]"
+                className="px-[14px] py-[8px] border border-[#e5e7eb] dark:border-slate-600 rounded text-[#374151] dark:text-gray-300 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors"
               >
                 선택 취소
               </button>
             </div>
 
-            <pre className="text-[13px] text-[#374151] whitespace-pre-wrap bg-[#fbfbfb] p-[12px] rounded border border-[#f1f5f9]">
+            <pre className="text-[13px] text-[#374151] dark:text-gray-300 whitespace-pre-wrap bg-[#fbfbfb] dark:bg-slate-700 p-[12px] rounded border border-[#f1f5f9] dark:border-slate-600">
               {uploadStatus}
             </pre>
 
