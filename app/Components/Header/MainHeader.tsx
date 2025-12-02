@@ -64,12 +64,14 @@ function MainHeader() {
           <Link href={"/#result"}>result</Link>
         </div>
       </div> */}
-      <div
-        className="cursor-pointer text-[22px] text-black dark:text-slate-200 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-        onClick={() => router.push("/mypage")}
-      >
-        MY PAGE
-      </div>
+      {pathname !== "/" && (
+        <div
+          className="cursor-pointer text-[22px] text-black dark:text-slate-200 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+          onClick={() => router.push("/mypage")}
+        >
+          MY PAGE
+        </div>
+      )}
       {/* <Image
         alt={"nav"}
         src={"/images/account_circle.png"}
