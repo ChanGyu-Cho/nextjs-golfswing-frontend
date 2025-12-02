@@ -93,8 +93,21 @@ function page() {
           if (history.length > 0) {
             const latestRecord = history[0];
             
+            // 진행 중인 job인 경우
+            if (latestRecord.processing_status === "PROCESSING" || latestRecord.processing_status === "PENDING") {
+              setLatestMetrics({
+                uploadTime: latestRecord.upload_time,
+                status: "진행 중",
+                model: null,
+                xfactor: null,
+                backShift: null,
+                downShift: null,
+                swingSpeed: null,
+                headGrade: null,
+              });
+            }
             // 최근 기록이 완료되었는지 확인
-            if (latestRecord.s3_result_path) {
+            else if (latestRecord.s3_result_path) {
               try {
                 // result.json 가져오기
                 const resultUrl = `${process.env.NEXT_PUBLIC_BACKEND_BASE || "http://localhost:3001/api"}/result/result-json?job_id=${encodeURIComponent(latestRecord.job_id)}`;
@@ -200,56 +213,63 @@ function page() {
             <div className="text-[24px] text-[#1f8552] dark:text-[#4ade80] font-bold mb-[20px]">
               최근 스윙 지표
             </div>
-            <div className="rounded bg-gray-50 dark:bg-slate-800 p-4">
-              <div className="grid grid-cols-5 gap-4">
-                {/* Model Result */}
-                <div className="text-center p-3 bg-white dark:bg-slate-700 rounded">
-                  <div className="text-xs text-gray-600 dark:text-slate-400 mb-2">Model 결과</div>
-                  <div className="text-lg font-bold text-[#1f8552] dark:text-[#4ade80]">
-                    {latestMetrics.model ? String(latestMetrics.model).toUpperCase() : "-"}
+            {latestMetrics.status === "진행 중" ? (
+              <div className="rounded bg-yellow-50 dark:bg-yellow-900/20 p-6 border border-yellow-200 dark:border-yellow-700 flex items-center justify-center gap-4">
+                <div className="w-[32px] h-[32px] rounded-full border-3 border-yellow-400 border-t-yellow-600 animate-spin"></div>
+                <div className="text-lg font-semibold text-yellow-700 dark:text-yellow-300">분석이 진행 중입니다...</div>
+              </div>
+            ) : (
+              <div className="rounded bg-gray-50 dark:bg-slate-800 p-4">
+                <div className="grid grid-cols-5 gap-4">
+                  {/* Model Result */}
+                  <div className="text-center p-3 bg-white dark:bg-slate-700 rounded">
+                    <div className="text-xs text-gray-600 dark:text-slate-400 mb-2">Model 결과</div>
+                    <div className="text-lg font-bold text-[#1f8552] dark:text-[#4ade80]">
+                      {latestMetrics.model ? String(latestMetrics.model).toUpperCase() : "-"}
+                    </div>
                   </div>
-                </div>
 
-                {/* X-Factor */}
-                <div className="text-center p-3 bg-white dark:bg-slate-700 rounded">
-                  <div className="text-xs text-gray-600 dark:text-slate-400 mb-2">X-Factor</div>
-                  <div className="text-lg font-bold text-black dark:text-white">
-                    {latestMetrics.xfactor ? `${Number(latestMetrics.xfactor).toFixed(1)}°` : "-"}
+                  {/* X-Factor */}
+                  <div className="text-center p-3 bg-white dark:bg-slate-700 rounded">
+                    <div className="text-xs text-gray-600 dark:text-slate-400 mb-2">X-Factor</div>
+                    <div className="text-lg font-bold text-black dark:text-white">
+                      {latestMetrics.xfactor ? `${Number(latestMetrics.xfactor).toFixed(1)}°` : "-"}
+                    </div>
                   </div>
-                </div>
 
-                {/* COM */}
-                <div className="text-center p-3 bg-white dark:bg-slate-700 rounded">
-                  <div className="text-xs text-gray-600 dark:text-slate-400 mb-2">COM</div>
-                  <div className="text-sm font-bold text-black dark:text-white">
-                    {latestMetrics.backShift !== null && latestMetrics.downShift !== null ? (
-                      <>
-                        <div>BS:{Number(latestMetrics.backShift).toFixed(0)}%</div>
-                        <div>DS:{Number(latestMetrics.downShift).toFixed(0)}%</div>
-                      </>
-                    ) : (
-                      "-"
-                    )}
+                  {/* COM */}
+                  <div className="text-center p-3 bg-white dark:bg-slate-700 rounded">
+                    <div className="text-xs text-gray-600 dark:text-slate-400 mb-2">COM</div>
+                    <div className="text-sm font-bold text-black dark:text-white">
+                      {latestMetrics.backShift !== null && latestMetrics.downShift !== null ? (
+                        <>
+                          <div>BS:{Number(latestMetrics.backShift).toFixed(0)}%</div>
+                          <div>DS:{Number(latestMetrics.downShift).toFixed(0)}%</div>
+                        </>
+                      ) : (
+                        "-"
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {/* Swing Speed */}
-                <div className="text-center p-3 bg-white dark:bg-slate-700 rounded">
-                  <div className="text-xs text-gray-600 dark:text-slate-400 mb-2">Swing Speed</div>
-                  <div className="text-lg font-bold text-black dark:text-white">
-                    {latestMetrics.swingSpeed ? `${Number(latestMetrics.swingSpeed).toFixed(1)} km/h` : "-"}
+                  {/* Swing Speed */}
+                  <div className="text-center p-3 bg-white dark:bg-slate-700 rounded">
+                    <div className="text-xs text-gray-600 dark:text-slate-400 mb-2">Swing Speed</div>
+                    <div className="text-lg font-bold text-black dark:text-white">
+                      {latestMetrics.swingSpeed ? `${Number(latestMetrics.swingSpeed).toFixed(1)} km/h` : "-"}
+                    </div>
                   </div>
-                </div>
 
-                {/* Head */}
-                <div className="text-center p-3 bg-white dark:bg-slate-700 rounded">
-                  <div className="text-xs text-gray-600 dark:text-slate-400 mb-2">Head</div>
-                  <div className="text-lg font-bold text-black dark:text-white">
-                    {latestMetrics.headGrade ? String(latestMetrics.headGrade).toUpperCase() : "-"}
+                  {/* Head */}
+                  <div className="text-center p-3 bg-white dark:bg-slate-700 rounded">
+                    <div className="text-xs text-gray-600 dark:text-slate-400 mb-2">Head</div>
+                    <div className="text-lg font-bold text-black dark:text-white">
+                      {latestMetrics.headGrade ? String(latestMetrics.headGrade).toUpperCase() : "-"}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 

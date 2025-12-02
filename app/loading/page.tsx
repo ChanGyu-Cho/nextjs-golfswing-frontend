@@ -53,7 +53,10 @@ export default function LoadingPage() {
           return;
         }
 
-        if (res.ok) {
+        if (res.status === 404) {
+          // 404는 정상 - job이 아직 생성되지 않았거나 처리 중
+          setMessage("분석 준비 중입니다...");
+        } else if (res.ok) {
           const j = await res.json().catch(() => ({}));
           const status = (j && j.status) || (j?.job_status) || "PENDING";
           if (status === "COMPLETED" || status === "DONE" || status === "SUCCESS") {
@@ -69,7 +72,7 @@ export default function LoadingPage() {
           }
           setMessage(`분석 진행 중: ${status}`);
         } else {
-          setMessage(`서버 오류: ${res.status}`);
+          setMessage(`분석 진행 중입니다...`);
         }
       } catch (e) {
         if (!mounted) return;
