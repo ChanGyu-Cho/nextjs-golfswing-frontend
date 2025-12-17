@@ -23,6 +23,9 @@ function page() {
   useEffect(() => {
     // 사용자 정보 및 최근 기록 가져오기
     const fetchUserData = async () => {
+      // 요청: 마이페이지에 고정 이름/이메일 표기
+      setUserName("조규찬");
+      setUserEmail("qqppqqppqp35@gmail.com");
       try {
         let token = null;
         
@@ -39,9 +42,10 @@ function page() {
           headers["Authorization"] = `Bearer ${token}`;
         }
 
-        // 1. 사용자 정보 API에서 가져오기
+        // 1. 사용자 정보 API에서 가져오기 (백엔드 → 폴백: Cognito UserInfo → 최종 폴백: id_token 디코드)
+        const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_BASE || "http://localhost:3001").replace(/\/$/, "");
         try {
-          const userInfoUrl = `${process.env.NEXT_PUBLIC_BACKEND_BASE || "http://localhost:3001/api"}/auth/me`;
+          const userInfoUrl = `${API_BASE}/api/auth/me`;
           const userInfoResponse = await fetch(userInfoUrl, {
             credentials: "include",
             headers,
@@ -49,36 +53,96 @@ function page() {
 
           if (userInfoResponse.ok) {
             const userInfo = await userInfoResponse.json();
-            setUserName(userInfo.name || userInfo.email || "사용자");
-            setUserEmail(userInfo.email || "-");
+            // 고정 표기 유지
+            setUserName("조규찬");
+            setUserEmail("qqppqqppqp35@gmail.com");
             setUserId(userInfo.user_id || "-");
             console.log("[mypage] User info fetched:", userInfo);
           } else {
-            // 폴백: 토큰에서 사용자 정보 추출
-            if (idToken) {
+            // 폴백1: Cognito UserInfo (access_token 필요)
+            const COGNITO_DOMAIN = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
+            if (COGNITO_DOMAIN && accessToken) {
+              try {
+                const resp = await fetch(`${COGNITO_DOMAIN}/oauth2/userInfo`, {
+                  headers: { Authorization: `Bearer ${accessToken}` },
+                });
+                if (resp.ok) {
+                  const info = await resp.json();
+                  // 고정 표기 유지
+                  setUserName("조규찬");
+                  setUserEmail("qqppqqppqp35@gmail.com");
+                  setUserId(info.sub || "-");
+                  console.log("[mypage] Cognito userInfo:", info);
+                } else if (idToken) {
+                  // 폴백2: id_token 디코드
+                  const decoded = JSON.parse(atob(idToken.split(".")[1]));
+                  setUserName("조규찬");
+                  setUserEmail("qqppqqppqp35@gmail.com");
+                  setUserId(decoded.sub || "-");
+                }
+              } catch (e) {
+                // 폴백2: id_token 디코드
+                if (idToken) {
+                  try {
+                    const decoded = JSON.parse(atob(idToken.split(".")[1]));
+                    setUserName("조규찬");
+                    setUserEmail("qqppqqppqp35@gmail.com");
+                    setUserId(decoded.sub || "-");
+                  } catch (_) {}
+                }
+              }
+            } else if (idToken) {
+              // 폴백2: id_token 디코드
               try {
                 const decoded = JSON.parse(atob(idToken.split(".")[1]));
-                setUserName(decoded.name || decoded.email || "사용자");
-                setUserEmail(decoded.email || "-");
+                setUserName("조규찬");
+                setUserEmail("qqppqqppqp35@gmail.com");
                 setUserId(decoded.sub || "-");
               } catch (_) {}
             }
           }
         } catch (err) {
           console.error("Failed to fetch user info:", err);
-          // 폴백: 토큰에서 사용자 정보 추출
-          if (idToken) {
+          // 폴백1: Cognito UserInfo → 폴백2: id_token 디코드
+          const COGNITO_DOMAIN = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
+          if (COGNITO_DOMAIN && accessToken) {
+            try {
+              const resp = await fetch(`${COGNITO_DOMAIN}/oauth2/userInfo`, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+              });
+              if (resp.ok) {
+                const info = await resp.json();
+                setUserName("조규찬");
+                setUserEmail("qqppqqppqp35@gmail.com");
+                setUserId(info.sub || "-");
+              } else if (idToken) {
+                const decoded = JSON.parse(atob(idToken.split(".")[1]));
+                setUserName("조규찬");
+                setUserEmail("qqppqqppqp35@gmail.com");
+                setUserId(decoded.sub || "-");
+              }
+            } catch (_) {
+              if (idToken) {
+                try {
+                  const decoded = JSON.parse(atob(idToken.split(".")[1]));
+                  setUserName("조규찬");
+                  setUserEmail("qqppqqppqp35@gmail.com");
+                  setUserId(decoded.sub || "-");
+                } catch (_) {}
+              }
+            }
+          } else if (idToken) {
             try {
               const decoded = JSON.parse(atob(idToken.split(".")[1]));
-              setUserName(decoded.name || decoded.email || "사용자");
-              setUserEmail(decoded.email || "-");
+              setUserName("조규찬");
+              setUserEmail("qqppqqppqp35@gmail.com");
               setUserId(decoded.sub || "-");
             } catch (_) {}
           }
         }
 
         // 2. 최근 스윙 기록 가져오기
-        const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_BASE || "http://localhost:3001/api"}/result/history`;
+        const apiUrl = `${API_BASE}/api/result/history`;
         
         const response = await fetch(apiUrl, {
           credentials: "include",
@@ -110,7 +174,7 @@ function page() {
             else if (latestRecord.s3_result_path) {
               try {
                 // result.json 가져오기
-                const resultUrl = `${process.env.NEXT_PUBLIC_BACKEND_BASE || "http://localhost:3001/api"}/result/result-json?job_id=${encodeURIComponent(latestRecord.job_id)}`;
+                const resultUrl = `${API_BASE}/api/result/result-json?job_id=${encodeURIComponent(latestRecord.job_id)}`;
                 const resultResponse = await fetch(resultUrl, {
                   credentials: "include",
                   headers,

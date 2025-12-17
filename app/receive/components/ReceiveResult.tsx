@@ -21,11 +21,11 @@ export default function ReceiveResult({ parsedJson, resultUrls, resultContents }
   if (!parsedJson) return null;
 
   // ✅ fps_info 추출: 존재하는 경우에만 사용(없으면 undefined 전달)
-  const fpsInfo =
-    parsedJson?.fps_info ||
-    parsedJson?.analysis?.fps_info ||
-    parsedJson?.metadata?.fps_info ||
-    undefined;
+  // fpsInfo: 기본값 + shoulder_sway의 fps_info도 포함
+  const fpsInfo = {
+    ...(parsedJson?.fps_info || parsedJson?.analysis?.fps_info || parsedJson?.metadata?.fps_info || {}),
+    shoulderSwayFpsInfo: parsedJson?.metrics?.shoulder_sway?.fps_info || undefined,
+  };
 
   // Search for impact_frame in all possible metric locations
   const impact_frame = 
@@ -108,7 +108,7 @@ export default function ReceiveResult({ parsedJson, resultUrls, resultContents }
           metricObj={getMetricObj('swing_speed') || getMetricObj('swing')}
           resultUrls={resultUrls}
           fpsInfo={fpsInfo}
-          leftNode={<SwingPanel parsedJson={parsedJson} impactFrame={impact_frame} />}
+          leftNode={(currentFrame) => <SwingPanel parsedJson={parsedJson} impactFrame={impact_frame} fpsInfo={fpsInfo} />}
         />
 
         {/* Head row */}

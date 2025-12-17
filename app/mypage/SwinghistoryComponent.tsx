@@ -30,7 +30,10 @@ function SwinghistoryComponent() {
         const accessToken = localStorage.getItem("access_token");
         const token = idToken || accessToken;
 
-        const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_BASE || "http://localhost:3001/api"}/result/history`;
+        const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_BASE || "http://localhost:3001").replace(/\/$/, "");
+        const apiUrl = `${API_BASE}/api/result/history`;
+        
+        console.log("[SwinghistoryComponent] Fetching history from:", apiUrl);
         
         const headers: any = {
           "Content-Type": "application/json",

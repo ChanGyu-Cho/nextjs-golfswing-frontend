@@ -13,6 +13,21 @@ function getXfactor(parsedJson: any) {
   return m?.summary?.xfactor_at_impact_deg ?? m?.summary?.xfactor_max_deg ?? m?.deg ?? m?.xfactor_deg ?? null;
 }
 
+function hasXfactorMetric(parsedJson: any) {
+  const xMetricObj = findMetric(parsedJson, 'xfactor') || parsedJson?.xfactor || null;
+  return Boolean(
+    xMetricObj && (
+      xMetricObj?.summary?.xfactor_at_impact_deg !== undefined ||
+      xMetricObj?.summary?.xfactor_max_deg !== undefined ||
+      xMetricObj?.deg !== undefined ||
+      xMetricObj?.xfactor_deg !== undefined ||
+      (Array.isArray(xMetricObj?.series) && xMetricObj.series.length > 0) ||
+      (xMetricObj?.metrics && Object.keys(xMetricObj.metrics).length > 0) ||
+      (xMetricObj?.metrics_data && Object.keys(xMetricObj.metrics_data).length > 0)
+    )
+  );
+}
+
 function getCOMSummary(parsedJson: any) {
   const comMetric = parsedJson?.metrics?.com_speed || parsedJson?.com_speed || null;
   const comShiftMetric = comMetric?.metrics?.com_shift || comMetric?.com_shift || null;
@@ -60,6 +75,7 @@ export default function SummaryBar({ parsedJson }: Props) {
   const com = getCOMSummary(parsedJson);
   const swing = getSwing(parsedJson);
   const head = getHead(parsedJson);
+  const showXfactor = hasXfactorMetric(parsedJson);
 
   return (
     <div className="rounded bg-white dark:bg-slate-800 p-4 mt-4 max-w-[1500px]">
@@ -68,10 +84,12 @@ export default function SummaryBar({ parsedJson }: Props) {
           <div className="text-sm text-gray-500 dark:text-slate-400">model 결과</div>
           <div className="text-2xl font-bold text-black dark:text-white">{(parsedJson?.stgcn_inference?.prediction || parsedJson?.model_result?.prediction || 'N/A').toString().toUpperCase()}</div>
         </div>
-        <div className="w-1/5 text-center">
-          <div className="text-sm text-gray-500 dark:text-slate-400">XFACTOR</div>
-          <div className="text-2xl font-bold text-black dark:text-white">{x !== null && x !== undefined ? `${Number(x).toFixed(1)}°` : 'N/A'}</div>
-        </div>
+        {showXfactor && (
+          <div className="w-1/5 text-center">
+            <div className="text-sm text-gray-500 dark:text-slate-400">XFACTOR</div>
+            <div className="text-2xl font-bold text-black dark:text-white">{x !== null && x !== undefined ? `${Number(x).toFixed(1)}°` : 'N/A'}</div>
+          </div>
+        )}
         <div className="w-1/5 text-center">
           <div className="text-sm text-gray-500 dark:text-slate-400">COM</div>
           <div className="text-2xl font-bold text-black dark:text-white">{com.back_shift !== null && com.down_shift !== null ? `BS:${Number(com.back_shift).toFixed(1)}%\nDS:${Number(com.down_shift).toFixed(1)}%` : 'N/A'}</div>

@@ -60,12 +60,13 @@ function MainComponent() {
                 방법
               </div>
             </div>
-            <div
-              onClick={() => alert("3D application 프로그램은 준비중입니다!")}
+            <a
+              href="/3d_exe/front_realsense.exe"
+              download
               className="w-full bg-white dark:bg-slate-800 border border-[#1f8552] dark:border-[#2ecc71] text-[#1f8552] dark:text-[#2ecc71] text-[16px] rounded-[4px] px-[15px] py-[10px] font-semibold text-center cursor-pointer hover:opacity-80 transition-opacity"
             >
               시작하기
-            </div>
+            </a>
           </div>
           <div className="px-[26px] py-[20px] flex flex-col gap-[10px]">
             <div className="flex flex-row items-center gap-[5px] text-gray-800 dark:text-gray-200">

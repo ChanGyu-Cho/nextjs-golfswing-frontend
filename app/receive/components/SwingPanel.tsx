@@ -2,26 +2,66 @@
 
 import React from "react";
 
-type Props = { parsedJson: any; impactFrame?: number | null };
+type Props = { parsedJson: any; impactFrame?: number | null; fpsInfo?: any };
 
 function extractSwingMetrics(parsedJson: any) {
   // Try different possible paths for summary
-  const summary = parsedJson?.metrics?.swing_speed?.metrics?.swing_speed?.summary || 
-                  parsedJson?.metrics?.swing_speed?.summary || 
-                  parsedJson?.swing_speed?.summary || 
-                  null;
+  const swingMetric = parsedJson?.metrics?.swing_speed || parsedJson?.swing_speed || null;
+  let nestedSwingMetric = null;
+  let summary = null;
+  let fpsInfo = null;
+
+  // 1. metrics.sing_speed.metrics.sing_speed.fps_info
+  if (swingMetric?.metrics?.swing_speed) {
+    nestedSwingMetric = swingMetric.metrics.swing_speed;
+    summary = nestedSwingMetric.summary || null;
+    fpsInfo = nestedSwingMetric.fps_info || null;
+  }
+  // 2. metrics.sing_speed.fps_info
+  if (!fpsInfo && swingMetric?.fps_info) {
+    fpsInfo = swingMetric.fps_info;
+  }
+  // 3. metrics.sing_speed.metrics 내부 다른 metric의 fps_info
+  if (!fpsInfo && swingMetric?.metrics && typeof swingMetric.metrics === 'object') {
+    for (const key of Object.keys(swingMetric.metrics)) {
+      const nested = swingMetric.metrics[key];
+      if (nested?.fps_info) {
+        fpsInfo = nested.fps_info;
+        break;
+      }
+    }
+  }
+  // 4. summary가 아직 없으면 metrics.sing_speed.summary
+  if (!summary && swingMetric?.summary) {
+    summary = swingMetric.summary;
+  }
+  // 5. fallback: shoulder_sway의 fps_info
+  if (!fpsInfo && parsedJson?.metrics?.shoulder_sway?.fps_info) {
+    fpsInfo = parsedJson.metrics.shoulder_sway.fps_info;
+  }
+  // 6. fallback: parsedJson global
+  if (!fpsInfo) {
+    fpsInfo = parsedJson?.fps_info || parsedJson?.analysis?.fps_info || parsedJson?.metadata?.fps_info || null;
+  }
 
   let wrist_mph: number | null = null;
   let club_mph: number | null = null;
 
   if (summary && typeof summary === 'object') {
-    if (typeof summary.wrist_peak_mph === 'number') wrist_mph = summary.wrist_peak_mph;
-    if (typeof summary.wrist_peak_mph === 'string') wrist_mph = Number(summary.wrist_peak_mph);
-    if (typeof summary.club_speed_mph === 'number') club_mph = summary.club_speed_mph;
-    if (typeof summary.club_speed_mph === 'string') club_mph = Number(summary.club_speed_mph);
+    let rawWrist = summary.wrist_peak_mph;
+    let rawClub = summary.club_speed_mph;
+    // fps가 60이면 *2 적용
+    if (fpsInfo?.original_fps === 60) {
+      if (typeof rawWrist === 'number') rawWrist *= 2;
+      if (typeof rawClub === 'number') rawClub *= 2;
+    }
+    if (typeof rawWrist === 'number') wrist_mph = rawWrist;
+    if (typeof rawWrist === 'string') wrist_mph = Number(rawWrist);
+    if (typeof rawClub === 'number') club_mph = rawClub;
+    if (typeof rawClub === 'string') club_mph = Number(rawClub);
   }
 
-  return { wrist_mph, club_mph };
+  return { wrist_mph, club_mph, fpsInfo };
 }
 
 function getClubSpeedAssessment(club_mph: number | null) {
@@ -91,7 +131,9 @@ function getClubSpeedAssessment(club_mph: number | null) {
 }
 
 export default function SwingPanel({ parsedJson, impactFrame = null }: Props) {
-  const { wrist_mph, club_mph } = extractSwingMetrics(parsedJson);
+  // fpsInfo를 props로 우선 사용, 없으면 내부 추출
+  const { wrist_mph, club_mph, fpsInfo: extractedFpsInfo } = extractSwingMetrics(parsedJson);
+  const fpsInfo = extractedFpsInfo || (typeof parsedJson.fpsInfo !== 'undefined' ? parsedJson.fpsInfo : undefined);
   const assessment = getClubSpeedAssessment(club_mph);
 
   return (
@@ -105,6 +147,8 @@ export default function SwingPanel({ parsedJson, impactFrame = null }: Props) {
           스윙 스피드는 골프에서 거리와 파워를 결정하는 가장 중요한 요소로, 손목과 클럽헤드의 최대 속도를 통해 스윙의 효율성과 타이밍을 분석할 수 있습니다.
         </div>
       </div>
+
+      {/* FPS 정보 표시 제거 (MetricRow에서만 표시) */}
 
       {/* 2. Wrist Speed Analysis */}
       <div className="bg-white dark:bg-slate-800 rounded-lg p-3 border border-slate-200 dark:border-slate-600">

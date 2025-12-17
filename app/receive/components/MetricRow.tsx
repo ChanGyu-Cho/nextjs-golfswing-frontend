@@ -111,13 +111,10 @@ export default function MetricRow({ metricKey, metricObj, leftNode, resultUrls, 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   
 
-  // ✅ fps_info 우선순위: metricObj 내부 → metricObj.metrics 내부 → Props로 받은 값 → 기본값
-  const fpsInfoFromMetric = metricObj?.fps_info;
-  
-  // Check nested metrics for fps_info (e.g., swing_speed.metrics.swing_speed.fps_info)
+  // ✅ fps_info 우선순위: metricObj 내부 → metricObj.metrics 내부 → shoulder_sway → Props로 받은 값 → 기본값
+  let fpsInfoFromMetric = metricObj?.fps_info;
   let fpsInfoFromNestedMetrics = null;
   if (!fpsInfoFromMetric && metricObj?.metrics && typeof metricObj.metrics === 'object') {
-    // Try to find fps_info in nested metrics objects
     for (const key of Object.keys(metricObj.metrics)) {
       const nested = metricObj.metrics[key];
       if (nested?.fps_info) {
@@ -126,8 +123,12 @@ export default function MetricRow({ metricKey, metricObj, leftNode, resultUrls, 
       }
     }
   }
-  
-  const activeFpsInfo = fpsInfoFromMetric || fpsInfoFromNestedMetrics || fpsInfo;
+  // swing_speed에 fps_info가 없으면 shoulder_sway의 fps_info 참조
+  let fpsInfoFromShoulderSway = null;
+  if ((metricKey === 'swing_speed' || metricKey === 'swing') && !fpsInfoFromMetric && !fpsInfoFromNestedMetrics && fpsInfo && fpsInfo.shoulderSwayFpsInfo) {
+    fpsInfoFromShoulderSway = fpsInfo.shoulderSwayFpsInfo;
+  }
+  const activeFpsInfo = fpsInfoFromMetric || fpsInfoFromNestedMetrics || fpsInfoFromShoulderSway || fpsInfo;
   
   // 고정 FPS: JSON fps_info 사용 (없으면 60으로 고정)
   const effectiveOutputFps = activeFpsInfo?.output_fps ?? activeFpsInfo?.original_fps ?? 60;
@@ -159,17 +160,18 @@ export default function MetricRow({ metricKey, metricObj, leftNode, resultUrls, 
     if (videoRef.current) {
       const video = videoRef.current;
       const currentTime = video.currentTime;
-      
-      // 고정된 original_fps 기준 프레임
-      const originalFrame = Math.floor(currentTime * effectiveOriginalFps);
-      
+      // 비디오 총 프레임 수 계산
+      const maxFrame = Math.floor((video.duration || 0) * effectiveOriginalFps);
+      let originalFrame = Math.floor(currentTime * effectiveOriginalFps);
+      // 프레임이 maxFrame을 넘지 않게 보정
+      if (maxFrame > 0 && originalFrame > maxFrame) originalFrame = maxFrame;
       setCurrentFrame(originalFrame);
-      
       // 디버그: 30프레임마다 로그
       if (originalFrame % 30 === 0) {
         console.log(`📊 프레임 동기화 (${metricKey}):`, {
           videoTime: currentTime.toFixed(3),
           originalFrame,
+          maxFrame,
           outputFps: effectiveOutputFps,
           originalFps: effectiveOriginalFps,
         });

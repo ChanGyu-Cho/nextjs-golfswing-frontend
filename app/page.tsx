@@ -70,8 +70,8 @@ export default function Home() {
             const COGNITO_DOMAIN = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
             const CLIENT_ID = process.env.NEXT_PUBLIC_CLIENT_ID;
             const REDIRECT_URI = process.env.NEXT_PUBLIC_REDIRECT_URI;
-            const SCOPE = process.env.NEXT_PUBLIC_SCOPE;
-            const RESPONSE_TYPE = process.env.NEXT_PUBLIC_RESPONSE_TYPE;
+            const SCOPE = process.env.NEXT_PUBLIC_SCOPE || 'openid profile email';
+            const RESPONSE_TYPE = process.env.NEXT_PUBLIC_RESPONSE_TYPE || 'code';
 
             if (!COGNITO_DOMAIN || !CLIENT_ID || !REDIRECT_URI) {
               router.push('/login');
@@ -80,11 +80,11 @@ export default function Home() {
 
             const authUrl =
               `${COGNITO_DOMAIN}/oauth2/authorize?` +
-              `response_type=${RESPONSE_TYPE}&` +
-              `client_id=${CLIENT_ID}&` +
+              `response_type=${encodeURIComponent(RESPONSE_TYPE)}&` +
+              `client_id=${encodeURIComponent(CLIENT_ID)}&` +
               `redirect_uri=${encodeURIComponent(REDIRECT_URI ?? "")}&` +
-              `scope=${encodeURIComponent(SCOPE ?? "")}&` +
-              `state=${state}`;
+              `scope=${encodeURIComponent(SCOPE)}&` +
+              `state=${encodeURIComponent(state)}`;
 
             router.push(authUrl);
           }}
