@@ -7,6 +7,40 @@ import React from "react";
 function MainHeader() {
   const router = useRouter();
   const pathname = usePathname();
+  
+  const handleLogout = () => {
+    console.log("[MainHeader] Logout initiated");
+    
+    // Cognito 로그아웃 URL로 바로 리다이렉트
+    // Cognito가 로그아웃 처리 후 LOGOUT_URI로 리다이렉트하면서 쿠키도 함께 정리됨
+    const COGNITO_DOMAIN = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
+    const CLIENT_ID = process.env.NEXT_PUBLIC_CLIENT_ID;
+    const LOGOUT_URI = process.env.NEXT_PUBLIC_LOGOUT_URI || window.location.origin;
+    
+    if (COGNITO_DOMAIN && CLIENT_ID) {
+      // localStorage만 먼저 정리
+      localStorage.removeItem("id_token");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      
+      const logoutUrl = `${COGNITO_DOMAIN}/logout?client_id=${CLIENT_ID}&logout_uri=${encodeURIComponent(LOGOUT_URI)}`;
+      console.log("[MainHeader] Redirecting to Cognito logout:", logoutUrl);
+      window.location.href = logoutUrl;
+    } else {
+      // 환경 변수가 없으면 로컬에서만 정리
+      localStorage.removeItem("id_token");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      
+      // 쿠키 삭제 (현재 도메인만)
+      document.cookie = "id_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie = "refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      
+      router.push("/");
+    }
+  };
+  
   const pageList = [
     {
       name: "HOME",
@@ -65,12 +99,23 @@ function MainHeader() {
         </div>
       </div> */}
       {pathname !== "/" && (
-        <div
-          className="cursor-pointer text-[22px] text-black dark:text-slate-200 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-          onClick={() => router.push("/mypage")}
-        >
-          MY PAGE
-        </div>
+        <>
+          {pathname === "/mypage" ? (
+            <button
+              onClick={handleLogout}
+              className="px-[24px] py-[10px] bg-red-500 hover:bg-red-600 text-white font-semibold rounded-[8px] transition-colors duration-200 shadow-md hover:shadow-lg text-[18px]"
+            >
+              로그아웃
+            </button>
+          ) : (
+            <div
+              className="cursor-pointer text-[22px] text-black dark:text-slate-200 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              onClick={() => router.push("/mypage")}
+            >
+              MY PAGE
+            </div>
+          )}
+        </>
       )}
       {/* <Image
         alt={"nav"}

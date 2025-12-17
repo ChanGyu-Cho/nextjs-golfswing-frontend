@@ -23,9 +23,6 @@ function page() {
   useEffect(() => {
     // 사용자 정보 및 최근 기록 가져오기
     const fetchUserData = async () => {
-      // 요청: 마이페이지에 고정 이름/이메일 표기
-      setUserName("조규찬");
-      setUserEmail("qqppqqppqp35@gmail.com");
       try {
         let token = null;
         
@@ -33,6 +30,51 @@ function page() {
         const idToken = localStorage.getItem("id_token");
         const accessToken = localStorage.getItem("access_token");
         token = idToken || accessToken;
+
+        // 먼저 id_token 디코딩 시도 (가장 빠르고 확실한 방법)
+        if (idToken) {
+          try {
+            const decoded = JSON.parse(atob(idToken.split(".")[1]));
+            console.log("[mypage] Decoded id_token:", decoded);
+            console.log("[mypage] Token fields - name:", decoded.name, "email:", decoded.email, "sub:", decoded.sub);
+            
+            // Cognito id_token에서 사용자 정보 추출
+            setUserName(decoded.name || decoded.given_name || decoded["cognito:username"] || "사용자");
+            setUserEmail(decoded.email || "-");
+            setUserId(decoded.sub || "-");
+          } catch (e) {
+            console.error("Failed to decode id_token:", e);
+          }
+        } else {
+          console.warn("[mypage] No id_token found in localStorage");
+        }
+
+        // Cognito UserInfo API 호출 (access_token 사용)
+        if (accessToken) {
+          const COGNITO_DOMAIN = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
+          if (COGNITO_DOMAIN) {
+            try {
+              console.log("[mypage] Calling Cognito UserInfo API...");
+              const userInfoResponse = await fetch(`${COGNITO_DOMAIN}/oauth2/userInfo`, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+              });
+              
+              if (userInfoResponse.ok) {
+                const cognitoUserInfo = await userInfoResponse.json();
+                console.log("[mypage] Cognito UserInfo API response:", cognitoUserInfo);
+                
+                // UserInfo API에서 받은 정보로 업데이트
+                if (cognitoUserInfo.name) setUserName(cognitoUserInfo.name);
+                if (cognitoUserInfo.email) setUserEmail(cognitoUserInfo.email);
+                if (cognitoUserInfo.sub) setUserId(cognitoUserInfo.sub);
+              } else {
+                console.error("[mypage] Cognito UserInfo API failed:", userInfoResponse.status);
+              }
+            } catch (err) {
+              console.error("[mypage] Failed to call Cognito UserInfo API:", err);
+            }
+          }
+        }
 
         const headers: any = {
           "Content-Type": "application/json",
@@ -42,7 +84,7 @@ function page() {
           headers["Authorization"] = `Bearer ${token}`;
         }
 
-        // 1. 사용자 정보 API에서 가져오기 (백엔드 → 폴백: Cognito UserInfo → 최종 폴백: id_token 디코드)
+        // 백엔드 API 호출 (추가 정보를 위해 - 실패해도 괜찮음)
         const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_BASE || "http://localhost:3001").replace(/\/$/, "");
         try {
           const userInfoUrl = `${API_BASE}/api/auth/me`;
@@ -53,92 +95,14 @@ function page() {
 
           if (userInfoResponse.ok) {
             const userInfo = await userInfoResponse.json();
-            // 고정 표기 유지
-            setUserName("조규찬");
-            setUserEmail("qqppqqppqp35@gmail.com");
-            setUserId(userInfo.user_id || "-");
-            console.log("[mypage] User info fetched:", userInfo);
-          } else {
-            // 폴백1: Cognito UserInfo (access_token 필요)
-            const COGNITO_DOMAIN = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
-            if (COGNITO_DOMAIN && accessToken) {
-              try {
-                const resp = await fetch(`${COGNITO_DOMAIN}/oauth2/userInfo`, {
-                  headers: { Authorization: `Bearer ${accessToken}` },
-                });
-                if (resp.ok) {
-                  const info = await resp.json();
-                  // 고정 표기 유지
-                  setUserName("조규찬");
-                  setUserEmail("qqppqqppqp35@gmail.com");
-                  setUserId(info.sub || "-");
-                  console.log("[mypage] Cognito userInfo:", info);
-                } else if (idToken) {
-                  // 폴백2: id_token 디코드
-                  const decoded = JSON.parse(atob(idToken.split(".")[1]));
-                  setUserName("조규찬");
-                  setUserEmail("qqppqqppqp35@gmail.com");
-                  setUserId(decoded.sub || "-");
-                }
-              } catch (e) {
-                // 폴백2: id_token 디코드
-                if (idToken) {
-                  try {
-                    const decoded = JSON.parse(atob(idToken.split(".")[1]));
-                    setUserName("조규찬");
-                    setUserEmail("qqppqqppqp35@gmail.com");
-                    setUserId(decoded.sub || "-");
-                  } catch (_) {}
-                }
-              }
-            } else if (idToken) {
-              // 폴백2: id_token 디코드
-              try {
-                const decoded = JSON.parse(atob(idToken.split(".")[1]));
-                setUserName("조규찬");
-                setUserEmail("qqppqqppqp35@gmail.com");
-                setUserId(decoded.sub || "-");
-              } catch (_) {}
-            }
+            console.log("[mypage] User info from backend:", userInfo);
+            // 백엔드에서 받은 정보로 업데이트 (있으면)
+            if (userInfo.name) setUserName(userInfo.name);
+            if (userInfo.email) setUserEmail(userInfo.email);
+            if (userInfo.user_id || userInfo.sub) setUserId(userInfo.user_id || userInfo.sub);
           }
         } catch (err) {
-          console.error("Failed to fetch user info:", err);
-          // 폴백1: Cognito UserInfo → 폴백2: id_token 디코드
-          const COGNITO_DOMAIN = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
-          if (COGNITO_DOMAIN && accessToken) {
-            try {
-              const resp = await fetch(`${COGNITO_DOMAIN}/oauth2/userInfo`, {
-                headers: { Authorization: `Bearer ${accessToken}` },
-              });
-              if (resp.ok) {
-                const info = await resp.json();
-                setUserName("조규찬");
-                setUserEmail("qqppqqppqp35@gmail.com");
-                setUserId(info.sub || "-");
-              } else if (idToken) {
-                const decoded = JSON.parse(atob(idToken.split(".")[1]));
-                setUserName("조규찬");
-                setUserEmail("qqppqqppqp35@gmail.com");
-                setUserId(decoded.sub || "-");
-              }
-            } catch (_) {
-              if (idToken) {
-                try {
-                  const decoded = JSON.parse(atob(idToken.split(".")[1]));
-                  setUserName("조규찬");
-                  setUserEmail("qqppqqppqp35@gmail.com");
-                  setUserId(decoded.sub || "-");
-                } catch (_) {}
-              }
-            }
-          } else if (idToken) {
-            try {
-              const decoded = JSON.parse(atob(idToken.split(".")[1]));
-              setUserName("조규찬");
-              setUserEmail("qqppqqppqp35@gmail.com");
-              setUserId(decoded.sub || "-");
-            } catch (_) {}
-          }
+          console.log("[mypage] Backend API not available, using token data:", err);
         }
 
         // 2. 최근 스윙 기록 가져오기

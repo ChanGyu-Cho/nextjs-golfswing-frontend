@@ -18,6 +18,20 @@ export default function Home() {
   const [isTypingPaused, setIsTypingPaused] = useState<boolean>(false);
 
   useEffect(() => {
+    // 로그아웃 후 리다이렉트된 경우 localStorage 토큰 정리
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      // Cognito 로그아웃 후 돌아온 경우 또는 명시적 정리
+      if (!localStorage.getItem("id_token")) {
+        // 이미 토큰이 없으면 쿠키도 정리
+        document.cookie = "id_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+        document.cookie = "refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     const currentText = list[textIndex];
 
     const typingInterval = setInterval(() => {
