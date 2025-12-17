@@ -75,10 +75,12 @@ function SwinghistoryComponent() {
   const formatDate = (dateStr: string) => {
     try {
       const date = new Date(dateStr);
-      return date.toLocaleDateString("ko-KR", {
-        month: "2-digit",
-        day: "2-digit",
-      });
+      // KST는 UTC+9
+      const utcTime = date.getTime();
+      const kstTime = new Date(utcTime + (9 * 60 * 60 * 1000));
+      const month = String(kstTime.getMonth() + 1).padStart(2, "0");
+      const day = String(kstTime.getDate()).padStart(2, "0");
+      return `${month}. ${day}.`;
     } catch {
       return "-";
     }
@@ -87,10 +89,18 @@ function SwinghistoryComponent() {
   const formatTime = (dateStr: string) => {
     try {
       const date = new Date(dateStr);
-      return date.toLocaleTimeString("ko-KR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      // KST는 UTC+9
+      const utcTime = date.getTime();
+      const kstTime = new Date(utcTime + (9 * 60 * 60 * 1000));
+      
+      const hours = kstTime.getHours();
+      const minutes = kstTime.getMinutes();
+      const seconds = kstTime.getSeconds();
+      
+      const ampm = hours >= 12 ? "오후" : "오전";
+      const displayHour = hours % 12 || 12;
+      
+      return `${ampm} ${String(displayHour).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
     } catch {
       return "-";
     }
