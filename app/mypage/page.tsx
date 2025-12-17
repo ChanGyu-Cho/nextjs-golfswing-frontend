@@ -148,6 +148,12 @@ function page() {
                   const resultData = await resultResponse.json();
                   const resultJson = resultData.result_json || resultData;
                   
+                  console.log("[mypage] Full result JSON structure:", JSON.stringify(resultJson, null, 2));
+                  console.log("[mypage] Result keys:", Object.keys(resultJson));
+                  console.log("[mypage] Has SWING?", resultJson.SWING);
+                  console.log("[mypage] Has metrics.swing_speed?", resultJson?.metrics?.swing_speed);
+                  console.log("[mypage] Has swing_speed?", resultJson?.swing_speed);
+                  
                   // 메트릭 추출
                   const xfactor = resultJson?.xfactor?.summary?.xfactor_at_impact_deg ?? 
                                  resultJson?.metrics?.xfactor?.summary?.xfactor_at_impact_deg ?? 
@@ -164,13 +170,25 @@ function page() {
                                    comShift?.summary?.down_shift ?? 
                                    null;
                   
-                  const swingSpeedMetric = resultJson?.metrics?.swing_speed || resultJson?.swing_speed;
-                  const swingSpeed = swingSpeedMetric?.series 
-                    ? Math.max(...swingSpeedMetric.series.map(Number))
-                    : null;
+                  // Swing Speed 추출 - Result 페이지와 동일한 로직
+                  const swingSpeedSummary =
+                    resultJson?.metrics?.swing_speed?.metrics?.swing_speed?.summary ||
+                    resultJson?.metrics?.swing_speed?.summary ||
+                    resultJson?.swing_speed?.summary ||
+                    null;
                   
-                  const headMetric = resultJson?.metrics?.head || resultJson?.head || resultJson?.metrics?.head_speed || resultJson?.head_speed;
-                  const headGrade = headMetric?.summary?.grade || headMetric?.grade || null;
+                  let swingSpeed = null;
+                  if (swingSpeedSummary && typeof swingSpeedSummary === 'object') {
+                    if (typeof swingSpeedSummary.club_speed_mph === 'number') {
+                      swingSpeed = swingSpeedSummary.club_speed_mph;
+                    } else if (typeof swingSpeedSummary.club_speed_mph === 'string') {
+                      swingSpeed = Number(swingSpeedSummary.club_speed_mph);
+                    }
+                    console.log("[mypage] Swing speed extracted:", swingSpeed);
+                  }
+                  
+                  const headMetric = resultJson?.metrics?.head || resultJson?.head || resultJson?.metrics?.head_speed || resultJson?.head_speed || resultJson?.HEAD;
+                  const headGrade = headMetric?.summary?.grade || headMetric?.grade || headMetric;
                   
                   const modelResult = resultJson?.stgcn_inference?.prediction ?? 
                                      resultJson?.model_result?.prediction ?? 
@@ -284,7 +302,7 @@ function page() {
                   <div className="text-center p-3 bg-white dark:bg-slate-700 rounded">
                     <div className="text-xs text-gray-600 dark:text-slate-400 mb-2">Swing Speed</div>
                     <div className="text-lg font-bold text-black dark:text-white">
-                      {latestMetrics.swingSpeed ? `${Number(latestMetrics.swingSpeed).toFixed(1)} km/h` : "-"}
+                      {latestMetrics.swingSpeed ? `${Number(latestMetrics.swingSpeed).toFixed(2)} mph` : "-"}
                     </div>
                   </div>
 
