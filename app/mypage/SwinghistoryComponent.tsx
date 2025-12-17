@@ -72,6 +72,61 @@ function SwinghistoryComponent() {
     setIsModalOpen(true);
   };
 
+  const handleDeleteJob = async (jobId: string, filename: string) => {
+    // 1. 사용자 확인
+    const confirmed = window.confirm(
+      `정말로 "${filename}" 기록을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`
+    );
+    
+    if (!confirmed) {
+      console.log("[SwinghistoryComponent] Delete cancelled by user");
+      return;
+    }
+
+    try {
+      console.log("[SwinghistoryComponent] Deleting job:", jobId);
+      
+      // 2. 토큰 가져오기
+      const idToken = localStorage.getItem("id_token");
+      const accessToken = localStorage.getItem("access_token");
+      const token = idToken || accessToken;
+
+      const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_BASE || "http://localhost:3001").replace(/\/$/, "");
+      const deleteUrl = `${API_BASE}/api/result/delete-job`;
+      
+      const headers: any = {
+        "Content-Type": "application/json",
+      };
+      
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      // 3. 백엔드로 삭제 요청
+      const response = await fetch(deleteUrl, {
+        method: "DELETE",
+        credentials: "include",
+        headers,
+        body: JSON.stringify({ job_id: jobId }),
+      });
+
+      if (response.ok) {
+        console.log("[SwinghistoryComponent] Job deleted successfully");
+        alert("기록이 삭제되었습니다.");
+        
+        // 4. 페이지 새로고침 또는 상태 업데이트
+        setHistory(history.filter(item => item.job_id !== jobId));
+      } else {
+        const errorData = await response.json();
+        console.error("[SwinghistoryComponent] Delete failed:", errorData);
+        alert(`삭제 실패: ${errorData.detail || "알 수 없는 오류"}`);
+      }
+    } catch (err) {
+      console.error("[SwinghistoryComponent] Delete error:", err);
+      alert(`삭제 중 오류 발생: ${err instanceof Error ? err.message : "알 수 없는 오류"}`);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     try {
       const date = new Date(dateStr);
@@ -214,11 +269,11 @@ function SwinghistoryComponent() {
                 <span className="text-gray-500 dark:text-gray-400">-</span>
               )}
             </div>
-            <div className="text-[14px] py-[20px] w-[20%] flex justify-center items-center">
+            <div className="text-[14px] py-[20px] w-[20%] flex justify-center items-center gap-2">
               <button
                 onClick={() => handleViewDetails(item.job_id, item.s3_result_path)}
                 disabled={!item.s3_result_path}
-                className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors text-base font-semibold whitespace-nowrap ${
+                className={`flex items-center justify-center gap-2 h-11 min-w-[128px] px-4 rounded-lg transition-colors text-base font-semibold whitespace-nowrap ${
                   item.s3_result_path
                     ? "bg-[#1f8552] dark:bg-[#4ade80] text-white dark:text-slate-900 hover:bg-[#187a47] dark:hover:bg-[#22c55e] shadow-md hover:shadow-lg"
                     : "bg-gray-200 dark:bg-slate-700 text-gray-400 dark:text-slate-500 cursor-not-allowed"
@@ -232,6 +287,15 @@ function SwinghistoryComponent() {
                   className="dark:invert"
                 />
                 <span>자세히 보기</span>
+              </button>
+              
+              {/* 삭제 버튼 */}
+              <button
+                onClick={() => handleDeleteJob(item.job_id, item.original_filename)}
+                className="flex items-center justify-center h-11 px-3 rounded-lg transition-colors text-base font-semibold bg-red-500 hover:bg-red-600 text-white shadow-md hover:shadow-lg"
+                title="이 기록을 삭제합니다"
+              >
+                <span>삭제</span>
               </button>
             </div>
           </div>
